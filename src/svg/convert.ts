@@ -13,6 +13,8 @@ export interface ConvertContext {
   sheetMatrix: Mat;
   /** Sheet viewport size in user units. */
   viewport: number;
+  /** Elements to leave out (nested part groups, guides). */
+  skip?: Set<Element>;
 }
 
 export interface ConvertResult { shapes: ShapeItem[]; warnings: string[] }
@@ -59,6 +61,7 @@ export function convertPart(group: Element, ctx: ConvertContext): ConvertResult 
   function visit(el: Element, m: Mat, parent: ComputedStyle, opacity: number, depth: number, useSize: Size) {
     const viaUse = useSize !== null;
     const tag = el.localName;
+    if (ctx.skip?.has(el) && el !== group) return;
     if (UNSUPPORTED_EL[tag]) { warn(UNSUPPORTED_EL[tag]); return; }
     if (SILENT.has(tag) && !(viaUse && tag === 'symbol')) return;
 

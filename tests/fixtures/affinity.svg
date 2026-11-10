@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g id="Forearm-L" serif:id="forearm_L">
+        <g transform="matrix(1,0,0,1,160,608)">
+            <path d="M68,28C68,12.536 55.464,0 40,0C24.536,0 12,12.536 12,28L12,148C12,163.464 24.536,176 40,176C55.464,176 68,163.464 68,148L68,28Z" style="fill:rgb(120,180,240);"/>
+        </g>
+    </g>
+    <g id="Forearm-R" serif:id="forearm_R">
+        <g transform="matrix(0.866025,0.5,-0.5,0.866025,700,600)">
+            <rect x="0" y="0" width="56" height="140" style="fill:rgb(120,180,240);stroke:rgb(30,60,90);stroke-width:4px;"/>
+        </g>
+    </g>
+</svg>

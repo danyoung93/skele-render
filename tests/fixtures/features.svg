@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024">
+  <style>.blue { fill: #2266dd } rect.thick { stroke-width: 8 } #special { fill: orange }</style>
+  <defs>
+    <linearGradient id="lin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="red"/><stop offset="50%" stop-color="yellow" stop-opacity="0.6"/><stop offset="1" stop-color="lime"/></linearGradient>
+    <radialGradient id="rad" cx="0.5" cy="0.5" r="0.5" fx="0.35" fy="0.35"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#0050a0"/></radialGradient>
+    <radialGradient id="radUser" gradientUnits="userSpaceOnUse" cx="192" cy="192" r="120" gradientTransform="translate(10 0)"><stop offset="0" stop-color="#ffe"/><stop offset="1" stop-color="#a40"/></radialGradient>
+    <path id="star" d="M0,-20 L6,-6 L20,-6 L9,3 L13,18 L0,9 L-13,18 L-9,3 L-20,-6 L-6,-6 Z"/>
+    <symbol id="dot" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="purple"/></symbol>
+  </defs>
+  <g id="head">
+    <circle cx="192" cy="192" r="130" fill="url(#radUser)"/>
+    <path d="M100 120 Q192 40 284 120 T 300 200" fill="none" stroke="#333" stroke-width="10" stroke-linecap="round" stroke-dasharray="20 10"/>
+    <path d="M120 260 a 72 40 0 0 0 144 0" fill="#222"/>
+    <path d="M140 160 h30 v30 h-30 z M145 165 h20 v20 h-20 z" fill-rule="evenodd" fill="rgb(20%, 30%, 40%)"/>
+  </g>
+  <g id="torso" opacity="0.9">
+    <rect x="410" y="60" width="270" height="380" rx="30" ry="50" fill="url(#lin)" stroke="#123" class="thick"/>
+    <polygon points="545,120 600,220 490,220" fill="url(#rad)"/>
+    <polyline points="430,300 470,340 510,300 550,340" fill="none" stroke="currentColor" color="#c0f" stroke-width="6" stroke-linejoin="round"/>
+    <line x1="430" y1="400" x2="660" y2="400" stroke="black" stroke-opacity="0.5" stroke-width="4"/>
+  </g>
+  <g id="eyes_open" transform="translate(736 32)">
+    <ellipse cx="68" cy="48" rx="28" ry="34" class="blue"/>
+    <ellipse cx="188" cy="48" rx="28" ry="34" id="special"/>
+    <use href="#star" x="128" y="48" fill="gold" stroke="#000" stroke-width="2"/>
+  </g>
+  <g id="hand_L">
+    <use xlink:href="#dot" x="290" y="630" width="80" height="80"/>
+    <g transform="translate(320 690) rotate(20) skewX(10) translate(-20 -10)"><rect width="40" height="20" fill="tomato"/></g>
+    <circle cx="300" cy="700" r="10" style="fill:#0a0;fill-opacity:0.5;stroke:#050;stroke-width:3px" opacity="0.8"/>
+  </g>
+  <g id="mouth_closed">
+    <path d="M764 422 C780 440 812 440 828 422" fill="none" stroke="#600" stroke-width="7" stroke-linecap="square" stroke-linejoin="bevel"/>
+  </g>
+</svg>

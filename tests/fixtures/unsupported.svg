@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" onload="window.__crPwned = 'onload'">
+  <script>window.__crPwned = 'script';</script>
+  <defs>
+    <clipPath id="c"><rect x="32" y="32" width="100" height="100"/></clipPath>
+    <mask id="m"><rect width="10" height="10" fill="white"/></mask>
+    <filter id="f"><feGaussianBlur stdDeviation="4"/></filter>
+    <pattern id="pat" width="10" height="10"><rect width="5" height="5"/></pattern>
+  </defs>
+  <g id="head">
+    <circle cx="192" cy="182" r="140" fill="#eee" clip-path="url(#c)"/>
+    <rect x="60" y="60" width="50" height="50" mask="url(#m)" fill="red"/>
+    <rect x="120" y="60" width="50" height="50" filter="url(#f)" fill="blue"/>
+    <rect x="180" y="60" width="50" height="50" fill="url(#pat)"/>
+    <image href="https://example.com/x.png" x="0" y="0" width="10" height="10"/>
+    <text x="100" y="200">Hello</text>
+    <foreignObject width="10" height="10"/>
+    <rect x="0" y="0" width="1in" height="10"/>
+    <use href="https://example.com/sprite.svg#a"/>
+  </g>
+</svg>

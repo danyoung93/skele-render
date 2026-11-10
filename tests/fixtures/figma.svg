@@ -1,0 +1,27 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_12_3)">
+<rect width="1024" height="1024" fill="white"/>
+<g id="head">
+<circle id="Ellipse 1" cx="192" cy="182" r="140" fill="#8FD18A"/>
+<path id="Vector" fill-rule="evenodd" clip-rule="evenodd" d="M110 60C150 30 234 30 274 60L262 92C230 70 154 70 122 92L110 60ZM180 52H204V64H180V52Z" fill="#2E5E2B"/>
+</g>
+<g id="torso">
+<rect id="Rectangle 2" x="400" y="72" width="288" height="376" rx="40" fill="#F5A623"/>
+<rect id="Rectangle 3" x="400" y="380" width="288" height="68" fill="#C47F12"/>
+</g>
+<g id="mouth_open_2">
+<ellipse cx="792" cy="536" rx="26" ry="22" fill="#5B1020"/>
+</g>
+<g id="mouht_half">
+<ellipse cx="936" cy="424" rx="20" ry="10" fill="#5B1020"/>
+</g>
+<g id="upper_arm_L">
+<rect x="48" y="608" width="64" height="192" rx="32" fill="#F5A623"/>
+</g>
+</g>
+<defs>
+<clipPath id="clip0_12_3">
+<rect width="1024" height="1024" fill="white"/>
+</clipPath>
+</defs>
+</svg>

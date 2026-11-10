@@ -18,7 +18,7 @@ export const BONES: Bone[] = [
   { id: 'torso',      parent: 'root',       offset: [0, 0],     rotation: 0 },
   { id: 'neck',       parent: 'torso',      offset: [0, -200],  rotation: 0 },
   { id: 'head',       parent: 'neck',       offset: [0, 0],     rotation: 0 },
-  { id: 'brows',      parent: 'head',       offset: [0, -115],  rotation: 0 },
+  { id: 'brows',      parent: 'head',       offset: [0, -108],  rotation: 0 },
   { id: 'shoulder_L', parent: 'torso',      offset: [-72, -180], rotation: 10 },
   { id: 'elbow_L',    parent: 'shoulder_L', offset: [0, 84],    rotation: 0 },
   { id: 'wrist_L',    parent: 'elbow_L',    offset: [0, 76],    rotation: 0 },

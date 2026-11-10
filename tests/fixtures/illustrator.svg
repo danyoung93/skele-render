@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2048 2048">
+  <defs>
+    <style>
+      .cls-1 { fill: url(#linear-gradient); }
+      .cls-2 { fill: #2b2d42; stroke: #edf2f4; stroke-miterlimit: 10; stroke-width: 6px; }
+      .cls-3, .cls-4 { fill: #ef233c; }
+      .cls-4 { opacity: .5; }
+    </style>
+    <linearGradient id="linear-gradient" x1="768" y1="64" x2="768" y2="896" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8d99ae"/>
+      <stop offset="1" stop-color="#2b2d42"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" data-name="linear-gradient" x1="0" y1="0" x2="1" y2="1" xlink:href="#linear-gradient"/>
+  </defs>
+  <g id="torso_1_" data-name="torso">
+    <path class="cls-1" d="M808,104h560c44.18,0,80,35.82,80,80v712H728V184c0-44.18,35.82-80,80-80Z"/>
+  </g>
+  <g id="eyes_x5F_open">
+    <circle class="cls-2" cx="1608" cy="160" r="56"/>
+    <circle class="cls-2" cx="1848" cy="160" r="56"/>
+  </g>
+  <g id="hand_x5F_R" data-name="hand_R">
+    <circle class="cls-3" cx="1616" cy="1336" r="80"/>
+    <circle class="cls-4" cx="1660" cy="1300" r="40"/>
+  </g>
+  <g id="brows_1_">
+    <rect x="1544" y="624" width="128" height="28" rx="14" ry="14" fill="url(#linear-gradient-2)" transform="translate(-60 80) rotate(-6 1608 638)"/>
+  </g>
+</svg>
