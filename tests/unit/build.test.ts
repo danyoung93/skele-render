@@ -108,3 +108,18 @@ describe('buildPartPreview', () => {
     expect(d.layers).toHaveLength(1);
   });
 });
+
+describe('output independence', () => {
+  it('shares no objects with the sheet, so players that mutate data (lottie-web) cannot corrupt later builds', () => {
+    const before = JSON.stringify(sheet.parts);
+    const doc = buildLottie(sheet, ANIMATIONS[0], { debug: false });
+    const head = shapeLayers(doc).find((l) => l.nm === 'head')!;
+    // Simulate lottie-web converting tangents to absolute in place.
+    const walk = (items: ShapeItem[]) => items.forEach((i) => {
+      if (i.ty === 'gr') walk(i.it);
+      if (i.ty === 'sh') i.ks.k.i = i.ks.k.i.map(([x, y]) => [x + 1000, y + 1000]);
+    });
+    walk(head.shapes);
+    expect(JSON.stringify(sheet.parts)).toBe(before);
+  });
+});

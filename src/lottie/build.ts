@@ -85,7 +85,8 @@ function partLayer(part: PartId, shapes: ShapeItem[], anim: Animation): ShapeLay
       r: stat(0),
       o: swapOpacity(part, anim),
     },
-    shapes,
+    // Deep copy: players such as lottie-web rewrite shape data in place.
+    shapes: structuredClone(shapes),
   };
 }
 
@@ -133,7 +134,7 @@ export function buildPartPreview(shapes: ShapeItem[], area: Area): LottieDoc {
     layers: [{
       ...base(1), ty: 4, ind: 1, nm: 'part',
       ks: { a: stat([area.x, area.y, 0]), p: stat([0, 0, 0]), s: stat([100, 100, 100]), r: stat(0), o: stat(100) },
-      shapes,
+      shapes: structuredClone(shapes),
     }],
   };
 }
