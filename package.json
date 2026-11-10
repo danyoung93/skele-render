@@ -1,0 +1,27 @@
+{
+  "name": "character-rig",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "e2e": "playwright test --trace off"
+  },
+  "dependencies": {
+    "lottie-web": "^5.13.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/jsdom": "^30.0.0",
+    "@types/pngjs": "^6.0.5",
+    "jsdom": "^31.0.0",
+    "pixelmatch": "^8.0.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.7",
+    "vitest": "^5.1.0"
+  }
+}
