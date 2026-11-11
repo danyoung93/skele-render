@@ -38,6 +38,8 @@ npm run dev        # open http://localhost:5173
      shape lands on top. **Tolerance** sets how different a colour can be and still count; **Smoothness** sets
      how closely curves follow the outline. Neighbouring areas of almost the same colour that touch are picked up
      together; lower the tolerance or tidy up with Edit points.
+   - **Shapes opacity** (under Reference image) fades your shapes on the canvas so you can see the design
+     through them. It only affects the view, never the saved sheet.
    - **Mirror arms** (Left → Right or Right → Left) lets you draw one arm; the other side is a flipped copy, shown
      faded. Set it back to Off to keep the copy as ordinary shapes you can change.
    - **Edit points (A)** drags points and curve handles; double-click an edge to add a point; Delete removes one.
@@ -66,7 +68,9 @@ makes an animated character: one rig can drive several sheets, and a sheet can b
 4. **Download rig** saves the rig file; **Load rig** (or dropping a `.rig.json` anywhere) loads one.
    **Reset to default** returns to the built-in skeleton.
 
-Animate and the exported Lottie always use the current rig. The rig is saved in the browser automatically, and
+Animate and the exported Lottie always use the current rig. Exports are a 250 × 300 portrait crop of the
+512 × 512 character space (x 140–390, y 80–380), so the body runs off the bottom edge; Edit rig shows this
+export frame as a dashed rectangle. The rig is saved in the browser automatically, and
 the tool remembers which rig you last used with each sheet: loading that sheet again offers to switch back.
 
 ## Commands

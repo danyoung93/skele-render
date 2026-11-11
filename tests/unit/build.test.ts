@@ -3,7 +3,7 @@ import { buildLottie, buildPartPreview } from '../../src/lottie/build';
 import { ANIMATIONS } from '../../src/anim';
 import { loadSheet } from '../../src/sheet/load';
 import { templateSvg } from '../../src/sheet/template';
-import { BONES, SWAP_GROUPS, COMP_SIZE } from '../../src/rig/rig';
+import { BONES, SWAP_GROUPS, COMP_SIZE, EXPORT_FRAME } from '../../src/rig/rig';
 import { AREAS, PART_IDS, type PartId } from '../../src/sheet/layout';
 import type { Layer, LottieDoc, ShapeItem, ShapeLayer } from '../../src/lottie/types';
 import { jointPosition, valueAt, worldMatrix } from './pose';
@@ -23,7 +23,8 @@ describe.each(ANIMATIONS.map((a) => [a.id, a] as const))('buildLottie %s', (_, a
   const dbg = buildLottie(sheet, anim, { debug: true });
 
   it('has the document header from the spec', () => {
-    expect(doc).toMatchObject({ v: '5.7.0', fr: 30, ip: 0, op: anim.frames, w: 512, h: 512, assets: [] });
+    expect(doc).toMatchObject({ v: '5.7.0', fr: 30, ip: 0, op: anim.frames, w: 250, h: 300, assets: [] });
+    expect(EXPORT_FRAME).toEqual({ x: 140, y: 80, w: 250, h: 300 });
   });
   it('has unique inds and resolvable parents', () => {
     for (const d of [doc, dbg]) {
@@ -82,8 +83,8 @@ describe('partial sheets', () => {
 
 describe('pose sanity at frame 0', () => {
   const doc = buildLottie(sheet, ANIMATIONS[0], { debug: false });
-  const J = (b: string) => jointPosition(doc, `bone:${b}`);
-  it('arms hang down, L is left of R, head above root, all joints inside the comp', () => {
+  const J = (b: string) => { const p = jointPosition(doc, `bone:${b}`); return [p[0] + EXPORT_FRAME.x, p[1] + EXPORT_FRAME.y]; };
+  it('arms hang down, L is left of R, head above root, all joints inside the 512 character space', () => {
     for (const s of ['L', 'R']) {
       expect(J(`wrist_${s}`)[1]).toBeGreaterThan(J(`elbow_${s}`)[1]);
       expect(J(`elbow_${s}`)[1]).toBeGreaterThan(J(`shoulder_${s}`)[1]);
@@ -100,8 +101,8 @@ describe('pose sanity at frame 0', () => {
     const head = doc.layers.find((l) => l.nm === 'head') as Layer;
     const a = AREAS.head;
     const p = apply(worldMatrix(doc, head), [a.x + a.pivot[0], a.y + a.pivot[1]]);
-    expect(p[0]).toBeCloseTo(J('head')[0]);
-    expect(p[1]).toBeCloseTo(J('head')[1]);
+    expect(p[0] + EXPORT_FRAME.x).toBeCloseTo(J('head')[0]);
+    expect(p[1] + EXPORT_FRAME.y).toBeCloseTo(J('head')[1]);
   });
 });
 
@@ -127,3 +128,14 @@ describe('output independence', () => {
     expect(JSON.stringify(sheet.parts)).toBe(before);
   });
 });
+
+describe('export frame', () => {
+  it('crops to x 140–390, y 80–380: the head is inside, the hands run off the bottom', () => {
+    const doc = buildLottie(sheet, ANIMATIONS[0], { debug: false });
+    const head = jointPosition(doc, 'bone:head'), wrist = jointPosition(doc, 'bone:wrist_L');
+    expect(head[1] - 150).toBeGreaterThan(0); // top of the head art (~150 above the neck joint) is inside
+    expect(wrist[1]).toBeGreaterThan(EXPORT_FRAME.h - 10);
+    expect(head[0]).toBeCloseTo(256 - EXPORT_FRAME.x);
+  });
+});
+

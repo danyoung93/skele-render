@@ -341,3 +341,19 @@ test('mirror arms in Edit rig: ticking snaps the right arm; dragging either side
   await page.keyboard.press('Control+z');
   near(await pos(page, 'elbow_R'), lopsided, 0.01);
 });
+
+test('Edit rig shows the export frame (x 140–390, y 80–380)', async ({ page }) => {
+  await openRig(page);
+  const f = page.locator('[data-id="export-frame"]');
+  await expect(f).toBeAttached();
+  await expect(f).toHaveAttribute('x', '140');
+  await expect(f).toHaveAttribute('width', '250');
+  await expect(f).toHaveAttribute('height', '300');
+});
+
+test('Animate exports a 250 × 300 Lottie', async ({ page }) => {
+  await page.goto('/');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export Lottie' }).click()]);
+  const doc = JSON.parse(readFileSync((await dl.path())!, 'utf8'));
+  expect([doc.w, doc.h]).toEqual([250, 300]);
+});

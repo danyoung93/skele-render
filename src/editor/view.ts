@@ -69,6 +69,7 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
       refImg.style.display = '';
     } else refImg.style.display = 'none';
     // Shapes
+    shapesG.setAttribute('opacity', n(st.shapesOpacity));
     const resolved = resolvedParts(doc);
     shapesG.innerHTML = PART_IDS.filter((p) => !st.hidden.has(p))
       .map((p) => mirrorTarget(doc, p)

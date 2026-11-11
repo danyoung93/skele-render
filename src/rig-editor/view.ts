@@ -4,7 +4,7 @@ import { isTyping } from '../editor/view';
 import { fitViewport, zoomAt, type Viewport } from '../editor/viewport';
 import { shapeItemsToSvg } from '../lottie/to-svg';
 import { restPose } from '../rig/pose';
-import { DRAW_ORDER, SWAP_DEFAULT, swapGroupOf } from '../rig/rig';
+import { DRAW_ORDER, EXPORT_FRAME, SWAP_DEFAULT, swapGroupOf } from '../rig/rig';
 import { moveJointMirrored } from '../rig/rig-edit';
 import { CHAR_SIZE, JOINT_IDS, type JointId } from '../rig/rig-file';
 import type { PartId, Vec2 } from '../sheet/layout';
@@ -30,6 +30,9 @@ export function createRigView(host: HTMLElement, store: RigStore, bus: SheetBus,
     <rect class="char-area" x="0" y="0" width="${CHAR_SIZE}" height="${CHAR_SIZE}" pointer-events="none"/>
     <image data-id="rig-reference" preserveAspectRatio="none" pointer-events="none"/>
     <g data-id="rig-character" pointer-events="none"></g>
+    <path data-id="export-dim" class="export-dim" fill-rule="evenodd" pointer-events="none"
+      d="M-4096 -4096 H4608 V4608 H-4096 Z M${EXPORT_FRAME.x} ${EXPORT_FRAME.y} h${EXPORT_FRAME.w} v${EXPORT_FRAME.h} h-${EXPORT_FRAME.w} Z"/>
+    <rect data-id="export-frame" class="export-frame" x="${EXPORT_FRAME.x}" y="${EXPORT_FRAME.y}" width="${EXPORT_FRAME.w}" height="${EXPORT_FRAME.h}" pointer-events="none"><title>Export frame</title></rect>
     <g data-id="rig-bones"></g>
   </svg>`;
   const el = host.querySelector<SVGSVGElement>('svg')!;

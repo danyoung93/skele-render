@@ -1,7 +1,7 @@
 /** Lottie document assembly (spec 7). Pure. */
 import type { Animation, Key } from '../anim/types';
 import { EASE_IN_OUT } from '../anim/types';
-import { BONES, COMP_SIZE, DRAW_ORDER, FPS, swapGroupOf, type Bone, type BoneId } from '../rig/rig';
+import { BONES, DRAW_ORDER, EXPORT_FRAME, FPS, swapGroupOf, type Bone, type BoneId } from '../rig/rig';
 import { DEFAULT_RIG, rigToSkeleton, type Rig } from '../rig/rig-file';
 import { AREAS, PART_SCALE, type Area, type PartId } from '../sheet/layout';
 import { ellipse, toLottiePath } from '../svg/geometry';
@@ -51,7 +51,8 @@ function boneLayers(anim: Animation, sk: Skeleton): Layer[] {
     const tr = anim.bones[b.id] ?? {};
     const ks: LayerTransform = {
       a: stat([0, 0, 0]),
-      p: trackProp(tr.position, [...b.offset]),
+      // The root is placed in export space: character space shifted by the export frame's origin.
+      p: trackProp(tr.position, b.parent ? [...b.offset] : [b.offset[0] - EXPORT_FRAME.x, b.offset[1] - EXPORT_FRAME.y]),
       r: scalarProp(trackProp(tr.rotation?.map((x) => ({ ...x, value: [x.value] })), [b.rotation])),
       s: trackProp(tr.scale?.map((x) => ({ ...x, value: [x.value[0] - 100, x.value[1] - 100] })), [100, 100]),
       o: stat(100),
@@ -125,7 +126,7 @@ export function buildLottie(sheet: SheetParts, anim: Animation, opts: { debug: b
     if (shapes && shapes.length) parts.push(partLayer(p, shapes, anim, sk));
   }
   return {
-    v: '5.7.0', fr: FPS, ip: 0, op: anim.frames, w: COMP_SIZE, h: COMP_SIZE,
+    v: '5.7.0', fr: FPS, ip: 0, op: anim.frames, w: EXPORT_FRAME.w, h: EXPORT_FRAME.h,
     nm: `${sheet.name ?? 'character'}-${anim.id}`, ddd: 0, assets: [],
     layers: [...(opts.debug ? debugLayers(anim, sk) : []), ...parts, ...boneLayers(anim, sk)],
   };

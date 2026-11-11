@@ -3,6 +3,11 @@ import type { PartId, Vec2 } from '../sheet/layout';
 import { DEFAULT_RIG, rigToSkeleton } from './rig-file';
 
 export const COMP_SIZE = 512;
+/**
+ * The exported Lottie's frame within the 512² character space: a 250 × 300 portrait crop so the body
+ * runs off the bottom edge. Rigs and sheets stay in character space; only the export is cropped.
+ */
+export const EXPORT_FRAME = { x: 140, y: 80, w: 250, h: 300 } as const;
 export const FPS = 30;
 
 export const BONE_IDS = [

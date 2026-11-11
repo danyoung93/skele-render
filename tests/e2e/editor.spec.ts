@@ -738,3 +738,17 @@ test.describe('mirror arms (sheet)', () => {
     await expect(count(page, 'upper_arm_R')).toHaveText('mirrored');
   });
 });
+
+test('Shapes opacity makes shapes see-through on the canvas only, and is remembered', async ({ page }) => {
+  await openEditor(page);
+  await page.locator('[data-tool="ellipse"]').click();
+  await dragSheet(page, [100, 100], [250, 220]);
+  await page.locator('[data-id="shapes-opacity"]').fill('30');
+  await expect(page.locator('[data-id="shapes"]')).toHaveAttribute('opacity', '0.3');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('[data-id="download-svg"]').click()]);
+  const svg = (await import('node:fs')).readFileSync((await dl.path())!, 'utf8');
+  expect(svg).not.toContain('opacity="0.3"');
+  await page.reload();
+  await page.getByRole('radio', { name: 'Edit sheet' }).click();
+  await expect(page.locator('[data-id="shapes"]')).toHaveAttribute('opacity', '0.3');
+});

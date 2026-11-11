@@ -35,7 +35,7 @@ input[type="range"] { width: 160px; accent-color: var(--accent); }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; padding: 16px; }
 .stage-wrap { display: flex; justify-content: center; }
 .stage {
-  width: min(100%, 560px); aspect-ratio: 1; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  width: min(100%, 470px); aspect-ratio: 250 / 300; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
   background: repeating-conic-gradient(var(--check-a) 0 25%, var(--check-b) 0 50%) 0 0 / 24px 24px;
 }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; align-self: start; }

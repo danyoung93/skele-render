@@ -6,6 +6,7 @@ import { ANIMATIONS } from '../../../src/anim';
 import { DEFAULT_RIG, JOINT_IDS, type Rig } from '../../../src/rig/rig-file';
 import { restPose } from '../../../src/rig/pose';
 import { AREAS, PART_IDS } from '../../../src/sheet/layout';
+import { EXPORT_FRAME } from '../../../src/rig/rig';
 import { apply } from '../../../src/svg/matrix';
 import { worldMatrix, jointPosition } from '../pose';
 import type { Layer } from '../../../src/lottie/types';
@@ -31,7 +32,7 @@ describe('building with a rig', () => {
       // bones they don't animate at frame 0, so compare against a static build.
       const doc = buildLottie(sheet, { ...anim, bones: {} }, { debug: false, rig: custom });
       for (const [joint, bone] of Object.entries(BONE_FOR)) {
-        const p = jointPosition(doc, `bone:${bone}`);
+        const q = jointPosition(doc, `bone:${bone}`), p = [q[0] + EXPORT_FRAME.x, q[1] + EXPORT_FRAME.y];
         const j = custom.joints[joint as keyof Rig['joints']];
         expect(Math.abs(p[0] - j[0]), joint).toBeLessThan(1e-4);
         expect(Math.abs(p[1] - j[1]), joint).toBeLessThan(1e-4);
@@ -39,7 +40,8 @@ describe('building with a rig', () => {
       const anchorOf = (nm: string) => {
         const l = doc.layers.find((x) => x.nm === nm) as Layer;
         const a = l.ks.a.a === 0 ? (l.ks.a.k as number[]) : [0, 0];
-        return apply(worldMatrix(doc, l), [a[0], a[1]]);
+        const q = apply(worldMatrix(doc, l), [a[0], a[1]]);
+        return [q[0] + EXPORT_FRAME.x, q[1] + EXPORT_FRAME.y];
       };
       const e = anchorOf('eyes_open'), m = anchorOf('mouth_closed');
       expect(e[0]).toBeCloseTo(custom.joints.eyes[0], 3); expect(e[1]).toBeCloseTo(custom.joints.eyes[1], 3);

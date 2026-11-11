@@ -40,12 +40,20 @@ export interface EditorState {
   keepRatio: boolean;
   traceTolerance: number;
   traceSmoothness: number;
+  /** Canvas-only opacity of the shapes layer (to see the reference through them). */
+  shapesOpacity: number;
 }
 
 export type Store = ReturnType<typeof createStore>;
 export type EditorStore = Store;
 
 export const PREVIEW_THROTTLE_MS = 200;
+
+/** Shapes opacity is a per-viewer display preference, kept in localStorage. */
+export const SHAPES_OPACITY_KEY = 'character-rig:shapes-opacity';
+function loadShapesOpacity(): number {
+  try { const v = Number(localStorage.getItem(SHAPES_OPACITY_KEY)); return localStorage.getItem(SHAPES_OPACITY_KEY) !== null && v >= 0 && v <= 1 ? v : 1; } catch { return 1; }
+}
 
 /** A command bug must never put NaN/Infinity into the document: it would make the autosave unreadable. */
 export function finiteDoc(d: EditorDoc): boolean {
@@ -57,7 +65,7 @@ export function finiteDoc(d: EditorDoc): boolean {
 export function createStore(bus: SheetBus, initial: EditorDoc) {
   let state: EditorState = {
     history: createHistory(initial), selection: [], active: 'head', tool: 'select', style: DEFAULT_STYLE,
-    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null, importNotes: [], keepRatio: false, traceTolerance: DEFAULT_TOLERANCE, traceSmoothness: DEFAULT_SMOOTHNESS,
+    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null, importNotes: [], keepRatio: false, traceTolerance: DEFAULT_TOLERANCE, traceSmoothness: DEFAULT_SMOOTHNESS, shapesOpacity: loadShapesOpacity(),
   };
   const listeners = new Set<() => void>();
   const docListeners = new Set<(doc: EditorDoc) => void>();

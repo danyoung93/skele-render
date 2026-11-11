@@ -28,7 +28,7 @@
 .part-row.active { background: color-mix(in srgb, var(--accent) 18%, transparent); }
 .part-name { flex: 1; }
 .part-count { color: var(--muted); font-variant-numeric: tabular-nums; }
-.preview { width: 100%; aspect-ratio: 1; border-radius: 6px; margin-top: 6px;
+.preview { width: 100%; aspect-ratio: 250 / 300; border-radius: 6px; margin-top: 6px;
   background: repeating-conic-gradient(var(--check-a) 0 25%, var(--check-b) 0 50%) 0 0 / 12px 12px; }
 .btn.danger { color: var(--danger); }
 .btn:disabled { opacity: 0.5; cursor: default; }
@@ -49,3 +49,5 @@
 @media (max-width: 860px) { .rig-editor { grid-template-columns: 1fr; grid-template-rows: 60vh auto; } }
 .canvas .mirrored { opacity: 0.55; }
 .part-count.mirrored { font-style: italic; }
+.canvas .export-dim { fill: var(--bg); opacity: 0.55; }
+.canvas .export-frame { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 8 5; vector-effect: non-scaling-stroke; }

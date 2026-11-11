@@ -9,7 +9,7 @@ import { flipShapes, moveToPart, reorder, setSize, updateShape } from './command
 import { applyStyle as applyStyleTo } from './style-actions';
 import { mirrorTarget, setMirrorArms } from './mirror';
 import { findShape, normAngle, tightBounds, type EditorShape, type Paint, type Style } from './model';
-import type { Store } from './store';
+import { SHAPES_OPACITY_KEY, type Store } from './store';
 import type { CanvasView } from './view';
 import type { ToolId } from './tools/types';
 import { setReference } from './commands';
@@ -78,6 +78,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     <div class="row"><label class="btn">Load image <input type="file" accept="image/*" data-id="ref-load" hidden/></label>
       <button class="btn" data-id="ref-reset">Reset</button></div>
     <div class="row"><label>Opacity <input type="range" min="0" max="100" data-id="ref-opacity"/></label></div>
+    <div class="row"><label title="See the reference through your shapes (display only)">Shapes opacity <input type="range" min="0" max="100" data-id="shapes-opacity"/></label></div>
     <div class="row"><label><input type="checkbox" data-id="ref-move"/> Move reference</label>
       <label><input type="checkbox" data-id="ref-lock"/> Lock</label></div>
   </section>
@@ -166,6 +167,13 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   const traceTol = $<HTMLInputElement>('trace-tolerance'), traceSmooth = $<HTMLInputElement>('trace-smoothness');
   traceTol.addEventListener('input', () => store.set({ traceTolerance: Number(traceTol.value) }));
   traceSmooth.addEventListener('input', () => store.set({ traceSmoothness: Number(traceSmooth.value) }));
+
+  const shapesOpacity = $<HTMLInputElement>('shapes-opacity');
+  shapesOpacity.addEventListener('input', () => {
+    const v = Number(shapesOpacity.value) / 100;
+    store.set({ shapesOpacity: v });
+    try { localStorage.setItem(SHAPES_OPACITY_KEY, String(v)); } catch { /* ignore */ }
+  });
 
   // Reference image controls
   const refMove = $<HTMLInputElement>('ref-move'), refLock = $<HTMLInputElement>('ref-lock'), refOpacity = $<HTMLInputElement>('ref-opacity');
@@ -285,6 +293,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     refMove.checked = st.tool === 'reference';
     refMove.disabled = !hasRef || r.locked;
     ($('ref-reset') as HTMLButtonElement).disabled = !hasRef;
+    if (document.activeElement !== shapesOpacity) shapesOpacity.value = String(Math.round(st.shapesOpacity * 100));
     $('trace-section').hidden = st.tool !== 'trace';
     traceTol.value = String(st.traceTolerance); traceSmooth.value = String(st.traceSmoothness);
     $('trace-tolerance-value').textContent = String(st.traceTolerance);
