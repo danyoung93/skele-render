@@ -270,3 +270,27 @@ describe('flipShapes', () => {
     expect(findShape(r, b.id)!.shape).toMatchObject({ x: 0, y: 30 });
   });
 });
+
+import { moveToPart } from '../../../src/editor/commands';
+
+describe('moveToPart', () => {
+  it('moves shapes to the top of another part, keeping ids, geometry, style and their order', () => {
+    let d = emptyDoc('x');
+    const a = addShape(d, 'head', rect({ x: 1 })); d = a.doc;
+    const b = addShape(d, 'torso', rect({ x: 2 })); d = b.doc;
+    const c = addShape(d, 'eyes_open', rect({ x: 3 })); d = c.doc;
+    const frozen = deepFreeze(d);
+    const r = moveToPart(frozen, [b.id, a.id], 'eyes_open');
+    expect(r.parts.head).toEqual([]);
+    expect(r.parts.torso).toEqual([]);
+    expect(r.parts.eyes_open.map((s) => s.id)).toEqual([c.id, a.id, b.id]);
+    expect(findShape(r, a.id)!.shape).toEqual(findShape(d, a.id)!.shape);
+    expect(frozen.parts.head).toHaveLength(1);
+  });
+  it('leaves shapes already in the target part where they are', () => {
+    let d = emptyDoc('x');
+    const a = addShape(d, 'head', rect()); d = a.doc;
+    const b = addShape(d, 'head', rect()); d = b.doc;
+    expect(moveToPart(d, [a.id], 'head').parts.head.map((s) => s.id)).toEqual([a.id, b.id]);
+  });
+});

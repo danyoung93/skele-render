@@ -107,6 +107,24 @@ function normaliseRect<S extends Extract<EditorShape, { kind: 'rect' }>>(r: S): 
   return { ...r, x: Math.min(r.x, r.x + r.w), y: Math.min(r.y, r.y + r.h), w: Math.abs(r.w), h: Math.abs(r.h) };
 }
 
+/**
+ * Moves shapes to another part, on top of its existing shapes, keeping their sheet position, ids and
+ * style. Moved shapes keep their relative order (part order, then drawing order).
+ */
+export function moveToPart(doc: EditorDoc, ids: string[], target: PartId): EditorDoc {
+  const set = new Set(ids);
+  const moving: EditorShape[] = [];
+  const parts = { ...doc.parts };
+  for (const p of PART_IDS) {
+    if (p === target || !doc.parts[p].some((s) => set.has(s.id))) continue;
+    moving.push(...doc.parts[p].filter((s) => set.has(s.id)));
+    parts[p] = doc.parts[p].filter((s) => !set.has(s.id));
+  }
+  if (!moving.length) return doc;
+  parts[target] = [...doc.parts[target], ...moving];
+  return { ...doc, parts };
+}
+
 export function moveShapes(doc: EditorDoc, ids: string[], dx: number, dy: number): EditorDoc {
   return mapShapes(doc, new Set(ids), (s) => translateShape(s, dx, dy));
 }

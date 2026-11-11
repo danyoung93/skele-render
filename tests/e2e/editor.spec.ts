@@ -670,3 +670,44 @@ test.describe('area select', () => {
     await expect(page.locator('[data-id="marquee"]')).toHaveCount(0);
   });
 });
+
+test.describe('change part', () => {
+  test('the Part dropdown moves the selection to another part; undo moves it back', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [180, 180]);
+    const select = page.locator('[data-id="part-select"]');
+    await expect(select).toHaveValue('head');
+    const x = await page.locator('[data-shape-id]').getAttribute('cx');
+    await select.selectOption('eyes_open');
+    await expect(count(page, 'head')).toHaveText('0');
+    await expect(count(page, 'eyes_open')).toHaveText('1');
+    await expect(page.locator('[data-shape-id]')).toHaveAttribute('data-part', 'eyes_open');
+    await expect(page.locator('[data-shape-id]')).toHaveAttribute('cx', x!);
+    await expect(page.locator('[data-part-row="eyes_open"]')).toHaveClass(/active/);
+    await page.locator('[data-id="canvas"]').focus();
+    await page.keyboard.press('Control+z');
+    await expect(count(page, 'head')).toHaveText('1');
+  });
+
+  test('shows Mixed for shapes in different parts, and un-hides a hidden target part', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [180, 180]);
+    await dragSheet(page, [450, 100], [550, 200]);
+    await page.keyboard.press('v');
+    await dragSheet(page, [60, 60], [470, 150]);
+    await expect(page.locator('[data-id="part-select"]')).toHaveValue('');
+    await expect(page.locator('[data-id="part-select"] option:checked')).toHaveText('Mixed');
+    await page.locator('[data-part-visible="brows"]').uncheck();
+    await page.locator('[data-id="part-select"]').selectOption('brows');
+    await expect(count(page, 'brows')).toHaveText('2');
+    await expect(page.locator('[data-part-visible="brows"]')).toBeChecked();
+    await expect(page.locator('[data-shape-id][data-part="brows"]')).toHaveCount(2);
+  });
+
+  test('the Part dropdown is disabled with nothing selected', async ({ page }) => {
+    await openEditor(page);
+    await expect(page.locator('[data-id="part-select"]')).toBeDisabled();
+  });
+});

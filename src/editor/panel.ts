@@ -2,10 +2,10 @@
 import lottie, { type AnimationItem } from 'lottie-web/build/player/lottie_light';
 import { ANIMATIONS } from '../anim';
 import { buildLottie } from '../lottie/build';
-import { AREAS, PART_IDS } from '../sheet/layout';
+import { AREAS, PART_IDS, type PartId } from '../sheet/layout';
 import type { SheetBus } from '../ui/sheet-bus';
 import { esc, warningsHtml } from '../ui/util';
-import { flipShapes, reorder, setSize, updateShape } from './commands';
+import { flipShapes, moveToPart, reorder, setSize, updateShape } from './commands';
 import { applyStyle as applyStyleTo } from './style-actions';
 import { findShape, normAngle, tightBounds, type EditorShape, type Paint, type Style } from './model';
 import type { Store } from './store';
@@ -54,6 +54,10 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     <div class="row"><label>W <input type="number" min="1" step="1" data-id="width"/></label>
       <label>H <input type="number" min="1" step="1" data-id="height"/></label>
       <label title="Keep proportions when resizing (Shift does the same on the handles)"><input type="checkbox" data-id="keep-ratio"/> Keep proportions</label></div>
+    <div class="row"><label>Part <select data-id="part-select">
+      <option value="" data-mixed>Mixed</option>
+      ${PART_IDS.map((p) => `<option value="${p}">${p}</option>`).join('')}
+    </select></label></div>
     <div class="row"><button class="btn" data-id="forward">Bring forward</button><button class="btn" data-id="backward">Send backward</button>
       <button class="btn" data-id="duplicate" title="Duplicate (Ctrl/Cmd+D)">Duplicate</button>
       <button class="btn" data-id="flip-h">Flip horizontally</button>
@@ -116,6 +120,16 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   widthIn.addEventListener('change', () => sizeChange('w', widthIn));
   heightIn.addEventListener('change', () => sizeChange('h', heightIn));
   keepRatio.addEventListener('change', () => store.set({ keepRatio: keepRatio.checked }));
+  const partSelect = $<HTMLSelectElement>('part-select');
+  partSelect.addEventListener('change', () => {
+    const target = partSelect.value as PartId;
+    if (!target) return;
+    const hidden = new Set(store.get().hidden);
+    hidden.delete(target);
+    store.set({ hidden });
+    store.commit(moveToPart(store.doc(), store.get().selection, target));
+    store.setActive(target);
+  });
   rotation.addEventListener('change', () => {
     let doc = store.doc();
     for (const s of selected()) doc = updateShape(doc, s.id, { rotation: normAngle(Number(rotation.value) || 0) });
@@ -202,7 +216,8 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   bus.subscribe(() => { if (!root.closest('[hidden]')) renderPreview(); });
 
   const setIfIdle = (el: HTMLInputElement, v: string, prop: 'value' | 'checked' = 'value') => {
-    if (document.activeElement === el) return;
+    // Don't overwrite a field the user is typing in; checkboxes always reflect the state.
+    if (prop === 'value' && document.activeElement === el) return;
     if (prop === 'checked') el.checked = v === 'true'; else el.value = v;
   };
   function refresh() {
@@ -233,6 +248,11 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     setIfIdle(widthIn, box ? r1(box.x1 - box.x0) : '');
     setIfIdle(heightIn, box ? r1(box.y1 - box.y0) : '');
     setIfIdle(keepRatio, String(st.keepRatio), 'checked');
+    const selParts = new Set(st.selection.map((id) => findShape(doc, id)?.part).filter(Boolean));
+    partSelect.disabled = !sel.length;
+    const mixed = partSelect.querySelector<HTMLOptionElement>('[data-mixed]')!;
+    mixed.hidden = selParts.size <= 1;
+    if (document.activeElement !== partSelect) partSelect.value = selParts.size === 1 ? [...selParts][0]! : '';
     for (const id of ['forward', 'backward', 'duplicate', 'flip-h', 'flip-v', 'delete']) ($(id) as HTMLButtonElement).disabled = !sel.length;
     const r = doc.reference, hasRef = !!st.reference && r.hasImage;
     setIfIdle(refOpacity, String(Math.round(r.opacity * 100)));
