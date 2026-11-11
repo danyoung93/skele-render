@@ -1,7 +1,8 @@
 /** Lottie document assembly (spec 7). Pure. */
 import type { Animation, Key } from '../anim/types';
 import { EASE_IN_OUT } from '../anim/types';
-import { ATTACH, BONES, COMP_SIZE, DRAW_ORDER, FPS, swapGroupOf, type BoneId } from '../rig/rig';
+import { BONES, COMP_SIZE, DRAW_ORDER, FPS, swapGroupOf, type Bone, type BoneId } from '../rig/rig';
+import { DEFAULT_RIG, rigToSkeleton, type Rig } from '../rig/rig-file';
 import { AREAS, PART_SCALE, type Area, type PartId } from '../sheet/layout';
 import { ellipse, toLottiePath } from '../svg/geometry';
 import type { Keyframe, Layer, LayerTransform, LottieDoc, Prop, ShapeItem, ShapeLayer } from './types';
@@ -43,8 +44,10 @@ function base(op: number) {
   return { ddd: 0 as const, ip: 0, op, st: 0, sr: 1 as const, ao: 0 as const, bm: 0 as const };
 }
 
-function boneLayers(anim: Animation): Layer[] {
-  return BONES.map((b) => {
+type Skeleton = ReturnType<typeof rigToSkeleton>;
+
+function boneLayers(anim: Animation, sk: Skeleton): Layer[] {
+  return sk.bones.map((b) => {
     const tr = anim.bones[b.id] ?? {};
     const ks: LayerTransform = {
       a: stat([0, 0, 0]),
@@ -74,8 +77,8 @@ function swapOpacity(part: PartId, anim: Animation): Prop<number> {
   return { a: 1, k };
 }
 
-function partLayer(part: PartId, shapes: ShapeItem[], anim: Animation): ShapeLayer {
-  const area = AREAS[part], at = ATTACH[part];
+function partLayer(part: PartId, shapes: ShapeItem[], anim: Animation, sk: Skeleton): ShapeLayer {
+  const area = AREAS[part], at = sk.attach[part];
   return {
     ...base(anim.frames), ty: 4, ind: PART_IND(part), nm: part, parent: BONE_IND(at.bone),
     ks: {
@@ -92,9 +95,9 @@ function partLayer(part: PartId, shapes: ShapeItem[], anim: Animation): ShapeLay
 
 const DEBUG_COLOR = [0.88, 0.27, 0.48, 1];
 
-function debugLayers(anim: Animation): ShapeLayer[] {
-  return BONES.map((b) => {
-    const children = BONES.filter((c) => c.parent === b.id);
+function debugLayers(anim: Animation, sk: Skeleton): ShapeLayer[] {
+  return sk.bones.map((b: Bone) => {
+    const children = sk.bones.filter((c) => c.parent === b.id);
     const dot = { ty: 'gr' as const, nm: 'joint', it: [
       { ty: 'sh' as const, ks: stat(toLottiePath(ellipse(0, 0, 3, 3))) },
       { ty: 'st' as const, c: stat([1, 1, 1, 1]), o: stat(100), w: stat(1.5), lc: 2 as const, lj: 2 as const, ml: 4 },
@@ -114,16 +117,17 @@ function debugLayers(anim: Animation): ShapeLayer[] {
   });
 }
 
-export function buildLottie(sheet: SheetParts, anim: Animation, opts: { debug: boolean }): LottieDoc {
+export function buildLottie(sheet: SheetParts, anim: Animation, opts: { debug: boolean; rig?: Rig }): LottieDoc {
+  const sk = rigToSkeleton(opts.rig ?? DEFAULT_RIG);
   const parts: ShapeLayer[] = [];
   for (const p of [...DRAW_ORDER].reverse()) {
     const shapes = sheet.parts[p];
-    if (shapes && shapes.length) parts.push(partLayer(p, shapes, anim));
+    if (shapes && shapes.length) parts.push(partLayer(p, shapes, anim, sk));
   }
   return {
     v: '5.7.0', fr: FPS, ip: 0, op: anim.frames, w: COMP_SIZE, h: COMP_SIZE,
     nm: `${sheet.name ?? 'character'}-${anim.id}`, ddd: 0, assets: [],
-    layers: [...(opts.debug ? debugLayers(anim) : []), ...parts, ...boneLayers(anim)],
+    layers: [...(opts.debug ? debugLayers(anim, sk) : []), ...parts, ...boneLayers(anim, sk)],
   };
 }
 
