@@ -14,6 +14,7 @@ import { createPenTool } from './tools/pen';
 import { createReferenceTool } from './tools/reference';
 import { createPointsTool } from './tools/points';
 import { createShapeTool } from './tools/shape';
+import { createTraceTool } from './tools/trace';
 import type { Tool, ToolId } from './tools/types';
 import { createCanvasView, isTyping, type CanvasView } from './view';
 
@@ -28,6 +29,7 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     { id: 'pen', label: 'Pen', key: 'p', tool: createPenTool() },
     { id: 'points', label: 'Edit points', key: 'a', tool: createPointsTool() },
     { id: 'eyedropper', label: 'Eyedropper', key: 'i', tool: createEyedropperTool() },
+    { id: 'trace', label: 'Trace', key: 't', tool: createTraceTool() },
     { id: 'reference', label: 'Move reference', key: '', tool: createReferenceTool() },
   ];
   el.innerHTML = `

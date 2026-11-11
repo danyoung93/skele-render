@@ -4,6 +4,7 @@ import { loadSheet, SheetError } from '../sheet/load';
 import type { SheetBus } from '../ui/sheet-bus';
 import { createHistory, push, redo as hRedo, undo as hUndo, type History } from './history';
 import { setReference } from './commands';
+import { DEFAULT_SMOOTHNESS, DEFAULT_TOLERANCE } from '../trace/trace';
 import { DEFAULT_STYLE, type EditorDoc, type Style } from './model';
 import { REF_SIZE } from '../sheet/layout';
 import { serialize } from './serialize';
@@ -37,6 +38,8 @@ export interface EditorState {
   importNotes: { part: PartId; message: string }[];
   /** Keep proportions: W/H edits and handle drags scale both axes together. */
   keepRatio: boolean;
+  traceTolerance: number;
+  traceSmoothness: number;
 }
 
 export type Store = ReturnType<typeof createStore>;
@@ -54,7 +57,7 @@ export function finiteDoc(d: EditorDoc): boolean {
 export function createStore(bus: SheetBus, initial: EditorDoc) {
   let state: EditorState = {
     history: createHistory(initial), selection: [], active: 'head', tool: 'select', style: DEFAULT_STYLE,
-    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null, importNotes: [], keepRatio: false,
+    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null, importNotes: [], keepRatio: false, traceTolerance: DEFAULT_TOLERANCE, traceSmoothness: DEFAULT_SMOOTHNESS,
   };
   const listeners = new Set<() => void>();
   const docListeners = new Set<(doc: EditorDoc) => void>();

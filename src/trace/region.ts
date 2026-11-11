@@ -32,7 +32,10 @@ function medianOf(hist: Uint32Array[], total: number): [number, number, number] 
 
 const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
 
-export function growRegion(img: Img, seed: [number, number], tol: number, limit: Limit): Region {
+/** Which edges of the limit count as a search limit (default: any edge that isn't the image's own edge). */
+export interface LimitEdges { left: boolean; top: boolean; right: boolean; bottom: boolean }
+
+export function growRegion(img: Img, seed: [number, number], tol: number, limit: Limit, edges?: LimitEdges): Region {
   const { width: w, height: h } = img;
   const x0 = Math.max(0, Math.floor(limit.x0)), y0 = Math.max(0, Math.floor(limit.y0));
   const x1 = Math.min(w, Math.ceil(limit.x1)), y1 = Math.min(h, Math.ceil(limit.y1));
@@ -78,7 +81,8 @@ export function growRegion(img: Img, seed: [number, number], tol: number, limit:
   let hitLimit = false;
   for (let y = y0; y < y1 && !hitLimit; y++) for (let x = x0; x < x1; x++) {
     if (!mask[y * w + x]) continue;
-    if ((x === x0 && x0 > 0) || (y === y0 && y0 > 0) || (x === x1 - 1 && x1 < w) || (y === y1 - 1 && y1 < h)) { hitLimit = true; break; }
+    const L = edges ?? { left: x0 > 0, top: y0 > 0, right: x1 < w, bottom: y1 < h };
+    if ((x === x0 && L.left) || (y === y0 && L.top) || (x === x1 - 1 && L.right) || (y === y1 - 1 && L.bottom)) { hitLimit = true; break; }
   }
 
   // Fill holes: anything inside the limit that the outside can't reach becomes part of the area.

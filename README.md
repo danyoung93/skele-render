@@ -33,6 +33,11 @@ npm run dev        # open http://localhost:5173
    - **Flip horizontally / vertically** mirror the selection (a group flips around its own centre).
    - Drag on empty canvas with **Select** to select every shape the box touches (Shift+drag adds to the selection).
    - The panel's **Part** dropdown moves the selected shapes to another part (they keep their position on the sheet).
+   - **Trace (T)** turns flat colour in the reference image into shapes: hover to preview the area, click to
+     create a matching path in that colour. Trace back to front (hat before hat band, face before eyes): each new
+     shape lands on top. **Tolerance** sets how different a colour can be and still count; **Smoothness** sets
+     how closely curves follow the outline. Neighbouring areas of almost the same colour that touch are picked up
+     together; lower the tolerance or tidy up with Edit points.
    - **Mirror arms** (Left → Right or Right → Left) lets you draw one arm; the other side is a flipped copy, shown
      faded. Set it back to Off to keep the copy as ordinary shapes you can change.
    - **Edit points (A)** drags points and curve handles; double-click an edge to add a point; Delete removes one.

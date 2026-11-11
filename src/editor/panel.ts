@@ -67,6 +67,13 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
       <button class="btn" data-id="flip-v">Flip vertically</button>
       <button class="btn danger" data-id="delete">Delete</button></div>
   </section>
+  <section class="ps" data-id="trace-section" hidden><h2>Trace</h2>
+    <p class="hint">Click a flat-colour area of the reference image to create a matching shape.</p>
+    <div class="row"><label title="How different a colour can be and still count as the same area">Tolerance
+      <input type="range" min="1" max="50" step="1" data-id="trace-tolerance"/></label><span data-id="trace-tolerance-value"></span></div>
+    <div class="row"><label title="How closely curves follow the outline (image pixels); higher = fewer points">Smoothness
+      <input type="range" min="0.25" max="4" step="0.05" data-id="trace-smoothness"/></label><span data-id="trace-smoothness-value"></span></div>
+  </section>
   <section class="ps"><h2>Reference image</h2>
     <div class="row"><label class="btn">Load image <input type="file" accept="image/*" data-id="ref-load" hidden/></label>
       <button class="btn" data-id="ref-reset">Reset</button></div>
@@ -155,6 +162,10 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   $('new-sheet').addEventListener('click', () => hooks.newSheet());
   $('edit-current').addEventListener('click', () => hooks.editCurrent());
   $('download-svg').addEventListener('click', () => hooks.downloadSvg());
+
+  const traceTol = $<HTMLInputElement>('trace-tolerance'), traceSmooth = $<HTMLInputElement>('trace-smoothness');
+  traceTol.addEventListener('input', () => store.set({ traceTolerance: Number(traceTol.value) }));
+  traceSmooth.addEventListener('input', () => store.set({ traceSmoothness: Number(traceSmooth.value) }));
 
   // Reference image controls
   const refMove = $<HTMLInputElement>('ref-move'), refLock = $<HTMLInputElement>('ref-lock'), refOpacity = $<HTMLInputElement>('ref-opacity');
@@ -274,6 +285,10 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     refMove.checked = st.tool === 'reference';
     refMove.disabled = !hasRef || r.locked;
     ($('ref-reset') as HTMLButtonElement).disabled = !hasRef;
+    $('trace-section').hidden = st.tool !== 'trace';
+    traceTol.value = String(st.traceTolerance); traceSmooth.value = String(st.traceSmoothness);
+    $('trace-tolerance-value').textContent = String(st.traceTolerance);
+    $('trace-smoothness-value').textContent = `${st.traceSmoothness} px`;
     hooks.refresh?.(root);
   }
   hooks.bind?.(root);

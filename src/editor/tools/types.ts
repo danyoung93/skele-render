@@ -1,7 +1,7 @@
 import type { Vec2 } from '../model';
 import type { Store } from '../store';
 
-export type ToolId = 'select' | 'ellipse' | 'rect' | 'pen' | 'points' | 'eyedropper' | 'reference';
+export type ToolId = 'select' | 'ellipse' | 'rect' | 'pen' | 'points' | 'eyedropper' | 'reference' | 'trace';
 
 export interface ToolCtx {
   store: Store;
