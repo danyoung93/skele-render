@@ -6,13 +6,22 @@ import { AREAS, PART_IDS } from '../sheet/layout';
 import type { SheetBus } from '../ui/sheet-bus';
 import { esc, warningsHtml } from '../ui/util';
 import { reorder, updateShape } from './commands';
+import { applyStyle as applyStyleTo } from './style-actions';
 import { findShape, normAngle, type EditorShape, type Paint, type Style } from './model';
 import type { Store } from './store';
 import type { CanvasView } from './view';
+import type { ToolId } from './tools/types';
+import { setReference } from './commands';
+import { REF_SIZE } from '../sheet/layout';
 
-export interface PanelHooks { extraSections?: string; bind?(root: HTMLElement): void; refresh?(root: HTMLElement): void }
+export interface PanelHooks {
+  extraSections?: string;
+  useTool(id: ToolId): void;
+  bind?(root: HTMLElement): void;
+  refresh?(root: HTMLElement): void;
+}
 
-export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view: CanvasView, hooks: PanelHooks = {}) {
+export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view: CanvasView, hooks: PanelHooks) {
   root.innerHTML = `
   <section class="ps"><h2>Sheet</h2>
     <label class="row">Name <input data-id="sheet-name" type="text" spellcheck="false"/></label>
@@ -39,6 +48,13 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     <div class="row"><button class="btn" data-id="forward">Bring forward</button><button class="btn" data-id="backward">Send backward</button>
       <button class="btn danger" data-id="delete">Delete</button></div>
   </section>
+  <section class="ps"><h2>Reference image</h2>
+    <div class="row"><label class="btn">Load image <input type="file" accept="image/*" data-id="ref-load" hidden/></label>
+      <button class="btn" data-id="ref-reset">Reset</button></div>
+    <div class="row"><label>Opacity <input type="range" min="0" max="100" data-id="ref-opacity"/></label></div>
+    <div class="row"><label><input type="checkbox" data-id="ref-move"/> Move reference</label>
+      <label><input type="checkbox" data-id="ref-lock"/> Lock</label></div>
+  </section>
   ${hooks.extraSections ?? ''}
   <section class="ps"><h2>Live preview</h2>
     <select data-id="preview-anim" aria-label="Preview animation">${ANIMATIONS.map((a) => `<option value="${a.id}">${a.label}</option>`).join('')}</select>
@@ -55,15 +71,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   const selected = (): EditorShape[] => store.get().selection.map((id) => findShape(store.doc(), id)?.shape).filter((s): s is EditorShape => !!s);
   const currentStyle = (): Style => selected()[0]?.style ?? store.get().style;
 
-  /** Apply a style change to the selection (one undo step) and to the default style. */
-  function applyStyle(patch: (s: Style) => Style) {
-    store.set({ style: patch(store.get().style) });
-    const sel = selected();
-    if (!sel.length) return;
-    let doc = store.doc();
-    for (const s of sel) doc = updateShape(doc, s.id, { style: patch(s.style) });
-    store.commit(doc);
-  }
+  const applyStyle = (patch: (s: Style) => Style) => applyStyleTo(store, patch);
   const paintFrom = (color: HTMLInputElement, op: HTMLInputElement, none: HTMLInputElement, prev: Paint | null): Paint | null =>
     none.checked ? null : { color: color.value, opacity: Math.min(1, Math.max(0, (Number(op.value) || (prev ? prev.opacity * 100 : 100)) / 100)) };
 
@@ -91,6 +99,27 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   nameIn.addEventListener('change', () => {
     const name = nameIn.value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'my-character';
     store.commit({ ...store.doc(), name });
+  });
+
+  // Reference image controls
+  const refMove = $<HTMLInputElement>('ref-move'), refLock = $<HTMLInputElement>('ref-lock'), refOpacity = $<HTMLInputElement>('ref-opacity');
+  $<HTMLInputElement>('ref-load').addEventListener('change', (e) => {
+    const input = e.target as HTMLInputElement, f = input.files?.[0];
+    if (f) void store.loadReference(f);
+    input.value = '';
+  });
+  refOpacity.addEventListener('input', () => store.transient(setReference(store.doc(), { opacity: Number(refOpacity.value) / 100 })));
+  refOpacity.addEventListener('change', () => store.endTransient());
+  refMove.addEventListener('change', () => hooks.useTool(refMove.checked ? 'reference' : 'select'));
+  refLock.addEventListener('change', () => {
+    store.commit(setReference(store.doc(), { locked: refLock.checked }));
+    if (refLock.checked && store.get().tool === 'reference') hooks.useTool('select');
+  });
+  $('ref-reset').addEventListener('click', () => {
+    const ref = store.get().reference;
+    if (!ref) return;
+    const scale = Math.min(REF_SIZE / ref.w, REF_SIZE / ref.h);
+    store.commit(setReference(store.doc(), { scale, x: (REF_SIZE - ref.w * scale) / 2, y: (REF_SIZE - ref.h * scale) / 2 }));
   });
 
   const parts = $('parts');
@@ -149,6 +178,14 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     rotation.disabled = !sel.length;
     setIfIdle(rotation, s0 ? String(Math.round(s0.rotation * 100) / 100) : '');
     for (const id of ['forward', 'backward', 'delete']) ($(id) as HTMLButtonElement).disabled = !sel.length;
+    const r = doc.reference, hasRef = !!st.reference && r.hasImage;
+    setIfIdle(refOpacity, String(Math.round(r.opacity * 100)));
+    refOpacity.disabled = !hasRef;
+    setIfIdle(refLock, String(r.locked), 'checked');
+    refLock.disabled = !hasRef;
+    refMove.checked = st.tool === 'reference';
+    refMove.disabled = !hasRef || r.locked;
+    ($('ref-reset') as HTMLButtonElement).disabled = !hasRef;
     hooks.refresh?.(root);
   }
   hooks.bind?.(root);

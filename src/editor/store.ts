@@ -3,12 +3,23 @@ import { PART_IDS, type PartId } from '../sheet/layout';
 import { loadSheet, SheetError } from '../sheet/load';
 import type { SheetBus } from '../ui/sheet-bus';
 import { createHistory, push, redo as hRedo, undo as hUndo, type History } from './history';
+import { setReference } from './commands';
 import { DEFAULT_STYLE, type EditorDoc, type Style } from './model';
+import { REF_SIZE } from '../sheet/layout';
 import { serialize } from './serialize';
 import type { ToolId } from './tools/types';
 import type { Viewport } from './viewport';
 
-export interface ReferenceImage { url: string; bitmap: ImageBitmap; w: number; h: number; canvas: OffscreenCanvas | HTMLCanvasElement }
+export interface ReferenceImage {
+  url: string;
+  /** The original file, kept for autosave. */
+  blob: Blob;
+  w: number;
+  h: number;
+  /** Pixels for the eyedropper, at display size (≤ 8000 px on the longest side). */
+  pixels: CanvasRenderingContext2D;
+}
+export const MAX_REFERENCE_PX = 8000;
 
 export interface EditorState {
   history: History;
@@ -36,6 +47,7 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
   const listeners = new Set<() => void>();
   const docListeners = new Set<(doc: EditorDoc) => void>();
   let dragBase: EditorDoc | null = null;
+  const refListeners = new Set<(blob: Blob | null) => void>();
   let previewTimer: ReturnType<typeof setTimeout> | null = null;
 
   const notify = () => { for (const f of [...listeners]) f(); };
@@ -104,5 +116,42 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
     setActive(active: PartId) { state = { ...state, active }; notify(); },
     setViewport(viewport: Viewport) { state = { ...state, viewport }; notify(); },
     flushPreview() { if (previewTimer) { clearTimeout(previewTimer); publishPreview(); } },
+    /**
+     * Decodes a reference image. With `fit`, places it to fill the sheet (one undo step); otherwise keeps
+     * the document's saved placement. On failure keeps the previous image and shows a message.
+     */
+    async loadReference(blob: Blob, opts: { fit: boolean } = { fit: true }): Promise<boolean> {
+      let bitmap: ImageBitmap;
+      try { bitmap = await createImageBitmap(blob); } catch {
+        state = { ...state, message: { kind: 'error', text: 'Could not read that image. Try a PNG, JPEG or WebP file.' } };
+        notify();
+        return false;
+      }
+      const k = Math.min(1, MAX_REFERENCE_PX / Math.max(bitmap.width, bitmap.height));
+      const w = Math.round(bitmap.width * k), h = Math.round(bitmap.height * k);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const pixels = canvas.getContext('2d', { willReadFrequently: true })!;
+      pixels.drawImage(bitmap, 0, 0, w, h);
+      bitmap.close();
+      let url: string;
+      if (k < 1) {
+        const scaled = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, 'image/png'));
+        url = URL.createObjectURL(scaled ?? blob);
+      } else url = URL.createObjectURL(blob);
+      if (state.reference) URL.revokeObjectURL(state.reference.url);
+      state = {
+        ...state, reference: { url, blob, w, h, pixels },
+        message: k < 1 ? { kind: 'info', text: `Reference scaled to ${MAX_REFERENCE_PX} px on its longest side.` } : null,
+      };
+      if (opts.fit) {
+        const scale = Math.min(REF_SIZE / w, REF_SIZE / h);
+        this.commit(setReference(doc(), { hasImage: true, scale, x: (REF_SIZE - w * scale) / 2, y: (REF_SIZE - h * scale) / 2 }));
+      } else notify();
+      for (const f of [...refListeners]) f(blob);
+      return true;
+    },
+    /** Called when the reference image file changes (for autosave). */
+    onReference(fn: (blob: Blob | null) => void) { refListeners.add(fn); return () => refListeners.delete(fn); },
   };
 }

@@ -4,7 +4,9 @@ import { emptyDoc } from './model';
 import { createPanel } from './panel';
 import { createStore, type Store } from './store';
 import { createSelectTool } from './tools/select';
+import { createEyedropperTool } from './tools/eyedropper';
 import { createPenTool } from './tools/pen';
+import { createReferenceTool } from './tools/reference';
 import { createPointsTool } from './tools/points';
 import { createShapeTool } from './tools/shape';
 import type { Tool, ToolId } from './tools/types';
@@ -20,11 +22,13 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     { id: 'rect', label: 'Rectangle', key: 'r', tool: createShapeTool('rect') },
     { id: 'pen', label: 'Pen', key: 'p', tool: createPenTool() },
     { id: 'points', label: 'Edit points', key: 'a', tool: createPointsTool() },
+    { id: 'eyedropper', label: 'Eyedropper', key: 'i', tool: createEyedropperTool() },
+    { id: 'reference', label: 'Move reference', key: '', tool: createReferenceTool() },
   ];
   el.innerHTML = `
   <div class="editor">
     <div class="tools" role="toolbar" aria-label="Tools">
-      ${tools.map((t) => `<button class="tool" data-tool="${t.id}" aria-pressed="false" title="${t.label} (${t.key.toUpperCase()})">${t.label}</button>`).join('')}
+      ${tools.filter((t) => t.key).map((t) => `<button class="tool" data-tool="${t.id}" aria-pressed="false" title="${t.label} (${t.key.toUpperCase()})">${t.label}</button>`).join('')}
     </div>
     <div class="canvas-wrap">
       <div class="canvas-host" data-id="canvas-host"></div>
@@ -38,7 +42,7 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     <aside class="panel editor-panel" data-id="editor-panel"></aside>
   </div>`;
   const view = createCanvasView(el.querySelector('[data-id="canvas-host"]')!, store);
-  createPanel(el.querySelector('[data-id="editor-panel"]')!, store, bus, view);
+  createPanel(el.querySelector('[data-id="editor-panel"]')!, store, bus, view, { useTool: (id) => useTool(id) });
 
   let current: ToolId | null = null;
   function useTool(id: ToolId) {
@@ -72,8 +76,19 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     if (mod || e.altKey) return;
     if (tool.key?.(e, view.ctx)) { e.preventDefault(); return; }
     if (e.key === 'Escape') { if (!tool.cancel?.(view.ctx)) store.select([]); return; }
-    const def = tools.find((t) => t.key === e.key.toLowerCase());
+    const def = tools.find((t) => t.key && t.key === e.key.toLowerCase());
     if (def) { e.preventDefault(); useTool(def.id); }
+  });
+
+  // Message banner (errors, notes); dismissed by clicking it.
+  const banner = el.querySelector<HTMLElement>('[data-id="banner"]')!;
+  banner.addEventListener('click', () => store.set({ message: null }));
+  store.subscribe(() => {
+    const m = store.get().message;
+    banner.hidden = !m;
+    banner.textContent = m?.text ?? '';
+    banner.className = `banner${m?.kind === 'error' ? ' error' : ''}`;
+    banner.setAttribute('role', m?.kind === 'error' ? 'alert' : 'status');
   });
 
   useTool('select');

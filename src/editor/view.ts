@@ -171,7 +171,7 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
   el.addEventListener('auxclick', (e) => e.preventDefault());
   el.addEventListener('wheel', (e) => {
     e.preventDefault();
-    if (tool?.id === 'reference' && !e.ctrlKey && (tool as Tool & { wheel?: (e: WheelEvent, c: ToolCtx) => boolean }).wheel?.(e, ctx)) return;
+    if (!e.ctrlKey && tool?.wheel?.(e, ctx)) return;
     store.setViewport(zoomAt(store.get().viewport, local(e), Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))));
   }, { passive: false });
   window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !isTyping(e)) { spaceDown = true; if (!isTyping(e)) e.preventDefault(); } });
@@ -189,7 +189,12 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
   };
 }
 
+const TEXT_INPUTS = new Set(['text', 'number', 'search', 'email', 'url', 'password', 'tel']);
+
+/** True when keys should go to a form field instead of editor shortcuts. */
 export function isTyping(e: Event): boolean {
   const t = e.target as HTMLElement | null;
-  return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+  if (!t) return false;
+  if (t instanceof HTMLInputElement) return TEXT_INPUTS.has(t.type);
+  return t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable;
 }

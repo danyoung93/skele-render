@@ -66,6 +66,14 @@ test.describe('shapes', () => {
     await expect(page.locator('[data-tool="ellipse"]')).toHaveAttribute('aria-pressed', 'true');
   });
 
+  test('shortcuts still work after clicking a checkbox in the panel', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-part-visible="head"]').click();
+    await expect(page.locator('[data-part-visible="head"]')).toBeFocused();
+    await page.keyboard.press('e');
+    await expect(page.locator('[data-tool="ellipse"]')).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('fill colour applies to the selected shape', async ({ page }) => {
     await openEditor(page);
     await page.locator('[data-tool="ellipse"]').click();
@@ -188,5 +196,80 @@ test.describe('pen and points', () => {
     const a = (await node.boundingBox())!;
     expect(Math.abs(a.x + a.width / 2 - target[0])).toBeLessThan(1);
     expect(Math.abs(a.y + a.height / 2 - target[1])).toBeLessThan(1);
+  });
+});
+
+test.describe('reference image', () => {
+  async function refPng(info: import('@playwright/test').TestInfo): Promise<string> {
+    const { PNG } = await import('pngjs');
+    const { writeFileSync } = await import('node:fs');
+    const png = new PNG({ width: 400, height: 200 });
+    for (let y = 0; y < 200; y++) for (let x = 0; x < 400; x++) {
+      const i = (y * 400 + x) * 4, [r, g, b] = x < 200 ? [0x33, 0x66, 0xcc] : [0xf4, 0xb9, 0xa0];
+      png.data[i] = r; png.data[i + 1] = g; png.data[i + 2] = b; png.data[i + 3] = 255;
+    }
+    const path = info.outputPath('reference.png');
+    writeFileSync(path, PNG.sync.write(png));
+    return path;
+  }
+  const img = (page: import('@playwright/test').Page) => page.locator('[data-id="reference"]');
+
+  test('loads, moves with Move reference, locks, scales with the wheel', async ({ page }, info) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    const shapeBefore = await page.locator('[data-shape-id]').first().getAttribute('cx');
+    await page.locator('[data-id="ref-load"]').setInputFiles(await refPng(info));
+    await expect(img(page)).toBeVisible();
+    // Fitted to the sheet: 400x200 → scale 2.56, centred vertically.
+    await expect(img(page)).toHaveAttribute('width', '1024');
+    const x0 = Number(await img(page).getAttribute('x'));
+    await page.locator('[data-id="ref-move"]').check();
+    await dragSheet(page, [500, 500], [600, 500]);
+    expect(Number(await img(page).getAttribute('x'))).toBeCloseTo(x0 + 100, 0);
+    expect(await page.locator('[data-shape-id]').first().getAttribute('cx')).toBe(shapeBefore);
+    const w0 = Number(await img(page).getAttribute('width'));
+    await page.mouse.move(...(await toClient(page, 500, 500)));
+    await page.mouse.wheel(0, -240);
+    await expect.poll(async () => Number(await img(page).getAttribute('width'))).toBeGreaterThan(w0);
+    await page.locator('[data-id="ref-lock"]').check();
+    await expect(page.locator('[data-id="ref-move"]')).toBeDisabled();
+    const x1 = await img(page).getAttribute('x');
+    await dragSheet(page, [500, 500], [600, 500]);
+    expect(await img(page).getAttribute('x')).toBe(x1);
+  });
+
+  test('choosing a drawing tool turns Move reference off', async ({ page }, info) => {
+    await openEditor(page);
+    await page.locator('[data-id="ref-load"]').setInputFiles(await refPng(info));
+    await page.locator('[data-id="ref-move"]').check();
+    await page.locator('[data-tool="ellipse"]').click();
+    await expect(page.locator('[data-id="ref-move"]')).not.toBeChecked();
+  });
+
+  test('eyedropper sets fill and (with Shift) stroke from the reference', async ({ page }, info) => {
+    await openEditor(page);
+    await page.locator('[data-id="ref-load"]').setInputFiles(await refPng(info));
+    await expect(img(page)).toBeVisible();
+    await page.keyboard.press('i');
+    // Image spans x 0..1024, y 256..768 after fitting; left half blue, right half peach.
+    await page.mouse.click(...(await toClient(page, 200, 500)));
+    await expect(page.locator('[data-id="fill"]')).toHaveValue('#3366cc');
+    await page.keyboard.down('Shift');
+    await page.mouse.click(...(await toClient(page, 800, 500)));
+    await page.keyboard.up('Shift');
+    await expect(page.locator('[data-id="stroke"]')).toHaveValue('#f4b9a0');
+    await expect(page.locator('[data-id="stroke-none"]')).not.toBeChecked();
+  });
+
+  test('a file that is not an image shows an error and keeps the previous reference', async ({ page }, info) => {
+    await openEditor(page);
+    await page.locator('[data-id="ref-load"]').setInputFiles(await refPng(info));
+    const href = await img(page).getAttribute('href');
+    const bad = info.outputPath('notes.png');
+    (await import('node:fs')).writeFileSync(bad, 'not really a png');
+    await page.locator('[data-id="ref-load"]').setInputFiles(bad);
+    await expect(page.locator('[data-id="banner"]')).toContainText('Could not read that image');
+    expect(await img(page).getAttribute('href')).toBe(href);
   });
 });
