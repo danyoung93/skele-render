@@ -104,6 +104,7 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
   const touches = new Map<number, Vec2>();
   let pinch: { dist: number; mid: Vec2; v: Viewport } | null = null;
   let toolPointer: number | null = null;
+  let lastDown: { t: number; x: number; y: number } | null = null;
   const local = (e: { clientX: number; clientY: number }): Vec2 => {
     const r = el.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top];
@@ -134,7 +135,13 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
     if (e.button !== 0 || !tool) return;
     toolPointer = e.pointerId;
     el.setPointerCapture(e.pointerId);
+    // Native dblclick is unreliable here: re-rendering replaces the pressed element, so the
+    // browser drops click/dblclick. Detect double presses ourselves.
+    const now = performance.now();
+    const isDouble = lastDown && now - lastDown.t < 400 && Math.hypot(e.clientX - lastDown.x, e.clientY - lastDown.y) < 5;
+    lastDown = isDouble ? null : { t: now, x: e.clientX, y: e.clientY };
     tool.down(e, ctx);
+    if (isDouble) tool.dblclick?.(e, ctx);
   });
   el.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch' && touches.has(e.pointerId)) {

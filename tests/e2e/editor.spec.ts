@@ -110,3 +110,83 @@ test.describe('shapes', () => {
     await expect(count(page, 'torso')).toHaveText('1');
   });
 });
+
+test.describe('pen and points', () => {
+  const pathD = (page: import('@playwright/test').Page) => page.locator('[data-part="mouth_open"]').getAttribute('d');
+
+  test('draws a closed curved path', async ({ page }) => {
+    await openEditor(page);
+    await page.keyboard.press('p');
+    await page.mouse.click(...(await toClient(page, 750, 510)));
+    await drag(page, await toClient(page, 830, 510), await toClient(page, 840, 540));
+    await page.mouse.click(...(await toClient(page, 790, 565)));
+    await page.mouse.click(...(await toClient(page, 750, 510)));
+    await expect(count(page, 'mouth_open')).toHaveText('1');
+    const d = (await pathD(page))!;
+    expect(d).toContain('C');
+    expect(d.trim().endsWith('Z')).toBe(true);
+  });
+
+  test('Enter finishes an open path; Backspace removes the last point', async ({ page }) => {
+    await openEditor(page);
+    await page.keyboard.press('p');
+    for (const [x, y] of [[750, 510], [800, 520], [830, 560]]) await page.mouse.click(...(await toClient(page, x, y)));
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Enter');
+    const d = (await pathD(page))!;
+    expect(d).not.toContain('Z');
+    expect((d.match(/C/g) ?? []).length).toBe(1);
+  });
+
+  test('undo cancels an in-progress pen path', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await page.keyboard.press('p');
+    await page.mouse.click(...(await toClient(page, 750, 510)));
+    await page.mouse.click(...(await toClient(page, 800, 520)));
+    await page.keyboard.press('Control+z');
+    await expect(page.locator('[data-id="tool-layer"] *')).toHaveCount(0);
+    await expect(count(page, 'head')).toHaveText('1');
+    await expect(page.locator('[data-shape-id]')).toHaveCount(1);
+  });
+
+  test('edit points: drag a point, insert by double-click, delete a point', async ({ page }) => {
+    await openEditor(page);
+    await page.keyboard.press('p');
+    for (const [x, y] of [[750, 510], [830, 510], [830, 560], [750, 560]]) await page.mouse.click(...(await toClient(page, x, y)));
+    await page.mouse.click(...(await toClient(page, 750, 510)));
+    await page.keyboard.press('a');
+    await page.mouse.click(...(await toClient(page, 790, 535)));
+    const d0 = (await pathD(page))!;
+    await dragSheet(page, [830, 510], [840, 510]);
+    const d1 = (await pathD(page))!;
+    expect(d1).not.toBe(d0);
+    const cs = (d: string) => (d.match(/C/g) ?? []).length;
+    await page.mouse.dblclick(...(await toClient(page, 790, 560)));
+    await expect.poll(async () => cs((await pathD(page))!)).toBe(cs(d1) + 1);
+    await page.mouse.click(...(await toClient(page, 750, 560)));
+    await page.keyboard.press('Delete');
+    await expect.poll(async () => cs((await pathD(page))!)).toBe(cs(d1));
+  });
+
+  test('edit points on a rotated path lands under the pointer', async ({ page }) => {
+    await openEditor(page);
+    await page.keyboard.press('p');
+    for (const [x, y] of [[750, 510], [830, 510], [830, 560]]) await page.mouse.click(...(await toClient(page, x, y)));
+    await page.mouse.click(...(await toClient(page, 750, 510)));
+    await page.keyboard.press('v');
+    await page.mouse.click(...(await toClient(page, 815, 525)));
+    await page.locator('[data-id="rotation"]').fill('90');
+    await page.locator('[data-id="rotation"]').press('Enter');
+    await page.locator('[data-tool="points"]').click();
+    await page.mouse.click(...(await toClient(page, 790, 535)));
+    const node = page.locator('[data-node="0"]');
+    const b = (await node.boundingBox())!;
+    const target = await toClient(page, 770, 590);
+    await drag(page, [b.x + b.width / 2, b.y + b.height / 2], target);
+    const a = (await node.boundingBox())!;
+    expect(Math.abs(a.x + a.width / 2 - target[0])).toBeLessThan(1);
+    expect(Math.abs(a.y + a.height / 2 - target[1])).toBeLessThan(1);
+  });
+});

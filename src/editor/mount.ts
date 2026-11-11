@@ -4,6 +4,8 @@ import { emptyDoc } from './model';
 import { createPanel } from './panel';
 import { createStore, type Store } from './store';
 import { createSelectTool } from './tools/select';
+import { createPenTool } from './tools/pen';
+import { createPointsTool } from './tools/points';
 import { createShapeTool } from './tools/shape';
 import type { Tool, ToolId } from './tools/types';
 import { createCanvasView, isTyping, type CanvasView } from './view';
@@ -16,6 +18,8 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     { id: 'select', label: 'Select', key: 'v', tool: createSelectTool() },
     { id: 'ellipse', label: 'Ellipse', key: 'e', tool: createShapeTool('ellipse') },
     { id: 'rect', label: 'Rectangle', key: 'r', tool: createShapeTool('rect') },
+    { id: 'pen', label: 'Pen', key: 'p', tool: createPenTool() },
+    { id: 'points', label: 'Edit points', key: 'a', tool: createPointsTool() },
   ];
   el.innerHTML = `
   <div class="editor">

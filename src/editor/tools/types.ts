@@ -21,6 +21,7 @@ export interface Tool {
   down(e: PointerEvent, ctx: ToolCtx): void;
   move(e: PointerEvent, ctx: ToolCtx): void;
   up(e: PointerEvent, ctx: ToolCtx): void;
+  dblclick?(e: MouseEvent, ctx: ToolCtx): void;
   /** Returns true when the key was handled. */
   key?(e: KeyboardEvent, ctx: ToolCtx): boolean;
   /** Abandon any in-progress action (tool change, Escape, undo). Returns true if something was cancelled. */
