@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyDoc, DEFAULT_STYLE, toWorld, toLocal, centre, normAngle, findShape, orientedBox, type EditorDoc, type RectShape, type PathShape } from '../../../src/editor/model';
+import { emptyDoc, DEFAULT_STYLE, toWorld, toLocal, centre, bounds, normAngle, findShape, orientedBox, type EditorDoc, type RectShape, type PathShape } from '../../../src/editor/model';
 import { addShape, updateShape, deleteShapes, reorder, moveShapes, resizeShape, rotateShapes, setReference, partForPoint, resizeSelection } from '../../../src/editor/commands';
 
 function deepFreeze<T>(o: T): T {
@@ -229,5 +229,44 @@ describe('Shift on edge handles keeps proportions', () => {
   it('dragBox: dragging the south edge scales width about the horizontal centre', async () => {
     const { dragBox } = await import('../../../src/editor/selection');
     expect(dragBox({ x0: 0, y0: 0, x1: 100, y1: 50 }, 's', [50, 100], true)).toEqual({ x0: -50, y0: 0, x1: 150, y1: 100 });
+  });
+});
+
+import { flipShapes } from '../../../src/editor/commands';
+
+describe('flipShapes', () => {
+  const curve = (): Omit<PathShape, 'id'> => ({ ...path(), closed: false, nodes: [
+    { p: [0, 0], in: [0, 0], out: [30, -40] },
+    { p: [100, 20], in: [80, -30], out: [100, 20] },
+  ] });
+  it('mirrors one path across its own centre; flipping twice restores it', () => {
+    const { doc, id } = addShape(emptyDoc('x'), 'head', curve());
+    const once = findShape(flipShapes(doc, [id], 'h'), id)!.shape as PathShape;
+    const c = centre(findShape(doc, id)!.shape);
+    expect(centre(once)[0]).toBeCloseTo(c[0]); expect(centre(once)[1]).toBeCloseTo(c[1]);
+    const b = bounds(findShape(doc, id)!.shape);
+    expect(once.nodes[0].p[0]).toBeCloseTo(b.x0 + b.x1 - 0);
+    expect(once.nodes[0].p[1]).toBe(0);
+    const twice = findShape(flipShapes(flipShapes(doc, [id], 'h'), [id], 'h'), id)!.shape as PathShape;
+    twice.nodes.forEach((n, i) => close([...n.p, ...n.in, ...n.out], [...(findShape(doc, id)!.shape as PathShape).nodes[i].p, ...(findShape(doc, id)!.shape as PathShape).nodes[i].in, ...(findShape(doc, id)!.shape as PathShape).nodes[i].out], 1e-9));
+  });
+  it('reverses rotation and mirrors the shape on screen', () => {
+    const { doc, id } = addShape(emptyDoc('x'), 'torso', rect({ rotation: 20 }));
+    const before = findShape(doc, id)!.shape;
+    const after = findShape(flipShapes(doc, [id], 'v'), id)!.shape as RectShape;
+    expect(after.rotation).toBe(-20);
+    // Each corner's mirror image (across the horizontal line through the centre) is a corner of the result.
+    const c = centre(before);
+    const mirrored = orientedBox(before).map(([x, y]) => [x, 2 * c[1] - y]);
+    const got = orientedBox(after);
+    for (const m of mirrored) expect(got.some((g) => Math.hypot(g[0] - m[0], g[1] - m[1]) < 1e-6)).toBe(true);
+  });
+  it('flips a group across the selection centre, so shapes swap sides', () => {
+    let d = emptyDoc('x');
+    const a = addShape(d, 'head', rect({ x: 0, y: 0, w: 20, h: 10 })); d = a.doc;
+    const b = addShape(d, 'head', rect({ x: 80, y: 30, w: 20, h: 10 })); d = b.doc;
+    const r = flipShapes(d, [a.id, b.id], 'h');
+    expect(findShape(r, a.id)!.shape).toMatchObject({ x: 80, y: 0 });
+    expect(findShape(r, b.id)!.shape).toMatchObject({ x: 0, y: 30 });
   });
 });

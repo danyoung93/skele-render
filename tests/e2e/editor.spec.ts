@@ -593,3 +593,32 @@ test.describe('size fields and keep proportions', () => {
     await expect(page.locator('[data-id="width"]')).toHaveValue('');
   });
 });
+
+test.describe('flip', () => {
+  test('Flip horizontally and vertically mirror a path; flipping twice and undo restore it', async ({ page }) => {
+    await openEditor(page);
+    await page.keyboard.press('p');
+    await page.mouse.click(...(await toClient(page, 750, 510)));
+    await drag(page, await toClient(page, 830, 510), await toClient(page, 840, 540));
+    await page.mouse.click(...(await toClient(page, 760, 565)));
+    await page.keyboard.press('Enter');
+    const d = () => page.locator('[data-part="mouth_open"]').getAttribute('d');
+    const d0 = await d();
+    await page.locator('[data-id="flip-h"]').click();
+    const d1 = await d();
+    expect(d1).not.toBe(d0);
+    await page.locator('[data-id="flip-h"]').click();
+    expect(await d()).toBe(d0);
+    await page.locator('[data-id="flip-v"]').click();
+    expect(await d()).not.toBe(d0);
+    await page.locator('[data-id="canvas"]').focus();
+    await page.keyboard.press('Control+z');
+    expect(await d()).toBe(d0);
+  });
+
+  test('flip buttons are disabled with nothing selected', async ({ page }) => {
+    await openEditor(page);
+    await expect(page.locator('[data-id="flip-h"]')).toBeDisabled();
+    await expect(page.locator('[data-id="flip-v"]')).toBeDisabled();
+  });
+});

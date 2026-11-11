@@ -30,6 +30,7 @@ npm run dev        # open http://localhost:5173
      on any resize handle. The panel's **W** and **H** fields set an exact size, and **Keep proportions** makes
      both the fields and the handles scale evenly.
    - **Duplicate** (Ctrl/Cmd+D, or the panel button) copies the selection 10 units down and right.
+   - **Flip horizontally / vertically** mirror the selection (a group flips around its own centre).
    - **Edit points (A)** drags points and curve handles; double-click an edge to add a point; Delete removes one.
 4. The **Live preview** animates as you draw, and **Animate** shows the same sheet. **Download SVG** saves it.
 

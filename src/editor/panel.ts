@@ -5,7 +5,7 @@ import { buildLottie } from '../lottie/build';
 import { AREAS, PART_IDS } from '../sheet/layout';
 import type { SheetBus } from '../ui/sheet-bus';
 import { esc, warningsHtml } from '../ui/util';
-import { reorder, setSize, updateShape } from './commands';
+import { flipShapes, reorder, setSize, updateShape } from './commands';
 import { applyStyle as applyStyleTo } from './style-actions';
 import { findShape, normAngle, tightBounds, type EditorShape, type Paint, type Style } from './model';
 import type { Store } from './store';
@@ -56,6 +56,8 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
       <label title="Keep proportions when resizing (Shift does the same on the handles)"><input type="checkbox" data-id="keep-ratio"/> Keep proportions</label></div>
     <div class="row"><button class="btn" data-id="forward">Bring forward</button><button class="btn" data-id="backward">Send backward</button>
       <button class="btn" data-id="duplicate" title="Duplicate (Ctrl/Cmd+D)">Duplicate</button>
+      <button class="btn" data-id="flip-h">Flip horizontally</button>
+      <button class="btn" data-id="flip-v">Flip vertically</button>
       <button class="btn danger" data-id="delete">Delete</button></div>
   </section>
   <section class="ps"><h2>Reference image</h2>
@@ -129,6 +131,8 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   });
 
   $('duplicate').addEventListener('click', () => hooks.duplicate());
+  $('flip-h').addEventListener('click', () => store.commit(flipShapes(store.doc(), store.get().selection, 'h')));
+  $('flip-v').addEventListener('click', () => store.commit(flipShapes(store.doc(), store.get().selection, 'v')));
   $('new-sheet').addEventListener('click', () => hooks.newSheet());
   $('edit-current').addEventListener('click', () => hooks.editCurrent());
   $('download-svg').addEventListener('click', () => hooks.downloadSvg());
@@ -229,7 +233,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     setIfIdle(widthIn, box ? r1(box.x1 - box.x0) : '');
     setIfIdle(heightIn, box ? r1(box.y1 - box.y0) : '');
     setIfIdle(keepRatio, String(st.keepRatio), 'checked');
-    for (const id of ['forward', 'backward', 'duplicate', 'delete']) ($(id) as HTMLButtonElement).disabled = !sel.length;
+    for (const id of ['forward', 'backward', 'duplicate', 'flip-h', 'flip-v', 'delete']) ($(id) as HTMLButtonElement).disabled = !sel.length;
     const r = doc.reference, hasRef = !!st.reference && r.hasImage;
     setIfIdle(refOpacity, String(Math.round(r.opacity * 100)));
     refOpacity.disabled = !hasRef;

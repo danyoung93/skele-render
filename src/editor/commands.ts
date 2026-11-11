@@ -2,7 +2,7 @@
 import { AREAS, PART_IDS, type PartId } from '../sheet/layout';
 import { keepFrame } from './path-edit';
 import {
-  bounds, centre, findShape, normAngle, rotatePoint, tightBounds, toWorld,
+  bounds, centre, findShape, normAngle, orientedBox, rotatePoint, tightBounds, toWorld,
   type Box, type EditorDoc, type EditorShape, type NewShape, type ReferenceState, type Vec2,
 } from './model';
 
@@ -78,6 +78,33 @@ export function duplicateShapes(doc: EditorDoc, ids: string[], offset: Vec2): { 
   }
   if (!copies.size) return { doc, ids: [] };
   return { doc: { ...doc, nextId, parts }, ids: ids.filter((id) => copies.has(id)).map((id) => copies.get(id)!) };
+}
+
+/**
+ * Mirrors shapes horizontally ('h') or vertically ('v'): one shape across its own centre, several across
+ * the centre of the selection. Geometry is mirrored in each shape's own frame and its rotation reversed,
+ * which is exactly a mirror image on screen (M·R(θ) = R(−θ)·M).
+ */
+export function flipShapes(doc: EditorDoc, ids: string[], axis: 'h' | 'v'): EditorDoc {
+  const shapes = ids.map((id) => findShape(doc, id)?.shape).filter((s): s is EditorShape => !!s);
+  if (!shapes.length) return doc;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const s of shapes) for (const p of orientedBox(s)) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }
+  const about: Vec2 = shapes.length === 1 ? centre(shapes[0]) : [(x0 + x1) / 2, (y0 + y1) / 2];
+  return mapShapes(doc, new Set(ids), (s) => {
+    const c = centre(s);
+    // Mirror the geometry across its own centre (this keeps the centre where it is)...
+    const mirrored = axis === 'h' ? mapGeometry(s, -1, 2 * c[0], 1, 0) : mapGeometry(s, 1, 0, -1, 2 * c[1]);
+    const fixed = s.kind === 'rect' ? normaliseRect(mirrored as Extract<EditorShape, { kind: 'rect' }>) : mirrored;
+    // ...then move the centre to its mirror image across `about`.
+    const nc: Vec2 = axis === 'h' ? [2 * about[0] - c[0], c[1]] : [c[0], 2 * about[1] - c[1]];
+    return { ...translateShape(fixed, nc[0] - c[0], nc[1] - c[1]), rotation: normAngle(-s.rotation) };
+  });
+}
+
+/** Mirroring gives a rect negative width/height; express it as the same box with positive size. */
+function normaliseRect<S extends Extract<EditorShape, { kind: 'rect' }>>(r: S): S {
+  return { ...r, x: Math.min(r.x, r.x + r.w), y: Math.min(r.y, r.y + r.h), w: Math.abs(r.w), h: Math.abs(r.h) };
 }
 
 export function moveShapes(doc: EditorDoc, ids: string[], dx: number, dy: number): EditorDoc {
