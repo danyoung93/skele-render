@@ -20,6 +20,7 @@ const FILES: [string, () => Promise<string> | string][] = [
   ['inkscape.svg', () => fx('inkscape.svg')],
   ['affinity.svg', () => fx('affinity.svg')],
   ['features.svg', () => fx('features.svg')],
+  ['editor.svg', () => fx('editor.svg')],
 ];
 
 for (const [file, text] of FILES) {

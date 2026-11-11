@@ -54,7 +54,7 @@ const ART: Record<PartId, string> = {
     <circle cx="56" cy="60" r="40" fill="${SKIN}"/>`,
 };
 
-function guides(): string {
+function guideMarks(): string {
   const out: string[] = [];
   for (const id of PART_IDS) {
     const a = AREAS[id], [px, py] = a.pivot;
@@ -76,6 +76,13 @@ function guides(): string {
   return out.join('\n    ');
 }
 
+/** The guides layer (box outlines, labels, pivot ticks, legend), shared with the editor's output. */
+export function guidesLayer(): string {
+  return `<g id="guides" inkscape:groupmode="layer" inkscape:label="guides">
+    ${guideMarks()}
+  </g>`;
+}
+
 export function templateSvg(): string {
   const layers = PART_IDS.map((id) => {
     const a = AREAS[id];
@@ -93,9 +100,7 @@ export function templateSvg(): string {
     </radialGradient>
   </defs>
 ${layers}
-  <g id="guides" inkscape:groupmode="layer" inkscape:label="guides">
-    ${guides()}
-  </g>
+  ${guidesLayer()}
 </svg>
 `;
 }
