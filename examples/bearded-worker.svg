@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g id="head" inkscape:groupmode="layer" inkscape:label="head">
+    <g transform="translate(32 32)">
+    <circle cx="40" cy="158" r="24" fill="#e9a088"/>
+    <circle cx="280" cy="158" r="24" fill="#e9a088"/>
+    <rect x="48" y="62" width="224" height="210" rx="72" fill="#f4b9a0"/>
+    <path d="M50 112 L50 200 C50 270 100 316 160 316 C220 316 270 270 270 200 L270 112 C262 150 246 170 226 178 C206 186 190 182 160 182 C130 182 114 186 94 178 C74 170 58 150 50 112 Z" fill="#8f9091"/>
+    <path d="M104 190 C124 176 146 178 160 186 C174 178 196 176 216 190 C200 204 178 204 160 196 C142 204 120 204 104 190 Z" fill="#7c7d7e"/>
+    <ellipse cx="160" cy="174" rx="17" ry="15" fill="#e8907c"/>
+    <path d="M58 74 C58 20 104 0 160 0 C216 0 262 20 262 74 Z" fill="#5f8f35"/>
+    <path d="M120 10 C128 32 130 52 128 70" fill="none" stroke="#527d2d" stroke-width="5" stroke-linecap="round"/>
+    <path d="M200 10 C192 32 190 52 192 70" fill="none" stroke="#527d2d" stroke-width="5" stroke-linecap="round"/>
+    <rect x="42" y="58" width="236" height="36" rx="16" fill="#78a843"/>
+    </g>
+  </g>
+  <g id="torso" inkscape:groupmode="layer" inkscape:label="torso">
+    <g transform="translate(384 32)">
+    <rect x="132" y="0" width="56" height="70" rx="14" fill="#e9a088"/>
+    <path d="M24 52 C60 30 110 24 160 24 C210 24 260 30 296 52 C312 64 314 94 312 120 L298 416 L22 416 L8 120 C6 98 10 76 26 66 Z" fill="#cfcfcf"/>
+    <path d="M8.9 140 L311.1 140 L309.8 166 L10.2 166 Z" fill="#8d8d8d"/><path d="M11.4 192 L308.6 192 L307.4 218 L12.6 218 Z" fill="#8d8d8d"/><path d="M13.9 244 L306.1 244 L304.9 270 L15.1 270 Z" fill="#8d8d8d"/><path d="M16.3 296 L303.7 296 L302.4 322 L17.6 322 Z" fill="#8d8d8d"/>
+    <path d="M78 150 Q78 140 88 140 L232 140 Q242 140 242 150 L242 330 L298 330 L298 416 L22 416 L22 330 L78 330 Z" fill="#6b8597"/>
+    <rect x="84" y="30" width="26" height="126" rx="6" fill="#6b8597"/>
+    <rect x="210" y="30" width="26" height="126" rx="6" fill="#6b8597"/>
+    <rect x="82" y="134" width="30" height="24" rx="5" fill="#8aa1b1"/>
+    <rect x="208" y="134" width="30" height="24" rx="5" fill="#8aa1b1"/>
+    <path d="M122 196 L198 196 L198 248 Q198 270 176 270 L144 270 Q122 270 122 248 Z" fill="#56707f"/>
+    <path d="M160 330 L160 416" stroke="#56707f" stroke-width="4"/>
+    </g>
+  </g>
+  <g id="eyes_open" inkscape:groupmode="layer" inkscape:label="eyes_open">
+    <g transform="translate(736 32)">
+    <circle cx="68" cy="58" r="28" fill="#fff"/>
+    <circle cx="188" cy="58" r="28" fill="#fff"/>
+    <circle cx="74" cy="60" r="14" fill="#3b3b3d"/>
+    <circle cx="182" cy="60" r="14" fill="#3b3b3d"/>
+    <circle cx="79" cy="54" r="4.5" fill="#fff"/>
+    <circle cx="187" cy="54" r="4.5" fill="#fff"/>
+    </g>
+  </g>
+  <g id="eyes_closed" inkscape:groupmode="layer" inkscape:label="eyes_closed">
+    <g transform="translate(736 160)">
+    <path d="M42 60 Q68 78 94 60" fill="none" stroke="#3b3b3d" stroke-width="7" stroke-linecap="round"/>
+    <path d="M162 60 Q188 78 214 60" fill="none" stroke="#3b3b3d" stroke-width="7" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g id="brows" inkscape:groupmode="layer" inkscape:label="brows">
+    <g transform="translate(736 288)">
+    <rect x="40" y="44" width="58" height="11" rx="5.5" fill="#7c7d7e" transform="rotate(-5 69 50)"/>
+    <rect x="158" y="44" width="58" height="11" rx="5.5" fill="#7c7d7e" transform="rotate(5 187 50)"/>
+    </g>
+  </g>
+  <g id="mouth_closed" inkscape:groupmode="layer" inkscape:label="mouth_closed">
+    <g transform="translate(736 384)">
+    <path d="M30 36 Q56 50 82 36" fill="none" stroke="#4b2626" stroke-width="7" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g id="mouth_half" inkscape:groupmode="layer" inkscape:label="mouth_half">
+    <g transform="translate(880 384)">
+    <path d="M30 32 L82 32 C82 48 70 54 56 54 C42 54 30 48 30 32 Z" fill="#4b2626"/>
+    <rect x="36" y="32" width="40" height="7" rx="2" fill="#fff"/>
+    </g>
+  </g>
+  <g id="mouth_open" inkscape:groupmode="layer" inkscape:label="mouth_open">
+    <g transform="translate(736 496)">
+    <path d="M28 26 L84 26 C84 54 72 66 56 66 C40 66 28 54 28 26 Z" fill="#4b2626"/>
+    <rect x="34" y="26" width="44" height="9" rx="3" fill="#fff"/>
+    <ellipse cx="56" cy="56" rx="15" ry="7" fill="#d9707a"/>
+    </g>
+  </g>
+  <g id="mouth_wide" inkscape:groupmode="layer" inkscape:label="mouth_wide">
+    <g transform="translate(880 496)">
+    <path d="M14 24 L98 24 C98 50 80 64 56 64 C32 64 14 50 14 24 Z" fill="#4b2626"/>
+    <path d="M18 24 L94 24 C92 36 86 40 56 40 C26 40 20 36 18 24 Z" fill="#fff"/>
+    <ellipse cx="56" cy="56" rx="17" ry="6" fill="#d9707a"/>
+    </g>
+  </g>
+  <g id="upper_arm_L" inkscape:groupmode="layer" inkscape:label="upper_arm_L">
+    <g transform="translate(32 608)"><rect x="16" y="0" width="64" height="192" rx="32" fill="#cfcfcf"/><rect x="16" y="52" width="64" height="24" fill="#8d8d8d"/><rect x="16" y="112" width="64" height="24" fill="#8d8d8d"/>
+    </g>
+  </g>
+  <g id="forearm_L" inkscape:groupmode="layer" inkscape:label="forearm_L">
+    <g transform="translate(160 608)"><rect x="12" y="0" width="56" height="176" rx="28" fill="#cfcfcf"/><rect x="12" y="36" width="56" height="24" fill="#8d8d8d"/><rect x="12" y="96" width="56" height="24" fill="#8d8d8d"/><rect x="12" y="150" width="56" height="20" rx="10" fill="#cfcfcf"/>
+    </g>
+  </g>
+  <g id="hand_L" inkscape:groupmode="layer" inkscape:label="hand_L">
+    <g transform="translate(272 608)">
+    <ellipse cx="28" cy="50" rx="14" ry="22" fill="#e9a088" transform="rotate(25 28 50)"/>
+    <circle cx="56" cy="60" r="38" fill="#f4b9a0"/>
+    <path d="M42 84 Q56 92 70 84" fill="none" stroke="#e9a088" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g id="upper_arm_R" inkscape:groupmode="layer" inkscape:label="upper_arm_R">
+    <g transform="translate(512 608)"><rect x="16" y="0" width="64" height="192" rx="32" fill="#cfcfcf"/><rect x="16" y="52" width="64" height="24" fill="#8d8d8d"/><rect x="16" y="112" width="64" height="24" fill="#8d8d8d"/>
+    </g>
+  </g>
+  <g id="forearm_R" inkscape:groupmode="layer" inkscape:label="forearm_R">
+    <g transform="translate(640 608)"><rect x="12" y="0" width="56" height="176" rx="28" fill="#cfcfcf"/><rect x="12" y="36" width="56" height="24" fill="#8d8d8d"/><rect x="12" y="96" width="56" height="24" fill="#8d8d8d"/><rect x="12" y="150" width="56" height="20" rx="10" fill="#cfcfcf"/>
+    </g>
+  </g>
+  <g id="hand_R" inkscape:groupmode="layer" inkscape:label="hand_R">
+    <g transform="translate(752 608)">
+    <ellipse cx="84" cy="50" rx="14" ry="22" fill="#e9a088" transform="rotate(-25 84 50)"/>
+    <circle cx="56" cy="60" r="38" fill="#f4b9a0"/>
+    <path d="M42 84 Q56 92 70 84" fill="none" stroke="#e9a088" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
