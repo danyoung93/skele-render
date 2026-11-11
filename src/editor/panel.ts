@@ -76,16 +76,24 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   const selected = (): EditorShape[] => store.get().selection.map((id) => findShape(store.doc(), id)?.shape).filter((s): s is EditorShape => !!s);
   const currentStyle = (): Style => selected()[0]?.style ?? store.get().style;
 
-  const applyStyle = (patch: (s: Style) => Style) => applyStyleTo(store, patch);
-  const paintFrom = (color: HTMLInputElement, op: HTMLInputElement, none: HTMLInputElement, prev: Paint | null): Paint | null =>
-    none.checked ? null : { color: color.value, opacity: Math.min(1, Math.max(0, (Number(op.value) || (prev ? prev.opacity * 100 : 100)) / 100)) };
+  const applyStyle = (patch: (s: Style) => Style, live = false) => applyStyleTo(store, patch, live);
+  /** Reads the fields now (before any store update re-renders them) and returns a paint builder. */
+  const readPaint = (color: HTMLInputElement, op: HTMLInputElement, none: HTMLInputElement) => {
+    const c = color.value, o = Number(op.value), off = none.checked;
+    return (prev: Paint | null): Paint | null =>
+      off ? null : { color: c, opacity: Math.min(1, Math.max(0, (o || (prev ? prev.opacity * 100 : 100)) / 100)) };
+  };
+  const setFill = (live = false) => { const f = readPaint(fill, fillOp, fillNone); applyStyle((s) => ({ ...s, fill: f(s.fill) }), live); };
+  const setStroke = (live = false) => { const f = readPaint(stroke, strokeOp, strokeNone); applyStyle((s) => ({ ...s, stroke: f(s.stroke) }), live); };
 
-  fill.addEventListener('input', () => { fillNone.checked = false; applyStyle((s) => ({ ...s, fill: paintFrom(fill, fillOp, fillNone, s.fill) })); });
-  fillOp.addEventListener('change', () => applyStyle((s) => ({ ...s, fill: paintFrom(fill, fillOp, fillNone, s.fill) })));
-  fillNone.addEventListener('change', () => applyStyle((s) => ({ ...s, fill: paintFrom(fill, fillOp, fillNone, s.fill) })));
-  stroke.addEventListener('input', () => { strokeNone.checked = false; applyStyle((s) => ({ ...s, stroke: paintFrom(stroke, strokeOp, strokeNone, s.stroke) })); });
-  strokeOp.addEventListener('change', () => applyStyle((s) => ({ ...s, stroke: paintFrom(stroke, strokeOp, strokeNone, s.stroke) })));
-  strokeNone.addEventListener('change', () => applyStyle((s) => ({ ...s, stroke: paintFrom(stroke, strokeOp, strokeNone, s.stroke) })));
+  fill.addEventListener('input', () => { fillNone.checked = false; setFill(true); });
+  fill.addEventListener('change', () => store.endTransient());
+  fillOp.addEventListener('change', () => setFill());
+  fillNone.addEventListener('change', () => setFill());
+  stroke.addEventListener('input', () => { strokeNone.checked = false; setStroke(true); });
+  stroke.addEventListener('change', () => store.endTransient());
+  strokeOp.addEventListener('change', () => setStroke());
+  strokeNone.addEventListener('change', () => setStroke());
   width.addEventListener('change', () => applyStyle((s) => ({ ...s, strokeWidth: Math.max(0, Number(width.value) || 0) })));
   radius.addEventListener('change', () => {
     let doc = store.doc();
@@ -136,8 +144,12 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     const p = (e.target as HTMLElement).getAttribute('data-part-visible');
     if (!p) return;
     const hidden = new Set(store.get().hidden);
-    if ((e.target as HTMLInputElement).checked) hidden.delete(p as never); else hidden.add(p as never);
-    store.set({ hidden });
+    const showing = (e.target as HTMLInputElement).checked;
+    if (showing) hidden.delete(p as never); else hidden.add(p as never);
+    // Hidden shapes can't stay selected, or Delete/arrow keys would change them unseen.
+    const doc = store.doc();
+    const selection = showing ? store.get().selection : store.get().selection.filter((id) => findShape(doc, id)?.part !== p);
+    store.set({ hidden, selection });
   });
   parts.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('input')) return;

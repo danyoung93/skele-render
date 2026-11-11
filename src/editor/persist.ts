@@ -8,16 +8,29 @@ export const STORE = 'editor';
 function req<T>(r: IDBRequest<T>): Promise<T> {
   return new Promise((ok, err) => { r.onsuccess = () => ok(r.result); r.onerror = () => err(r.error); });
 }
-async function withStore<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => Promise<T>): Promise<T> {
+/**
+ * One connection, opened once and reused: when it is already open, a write is issued synchronously,
+ * so a save started from a `pagehide` handler reaches the database before the page goes away.
+ */
+let db: IDBDatabase | null = null;
+async function connection(): Promise<IDBDatabase> {
+  if (db) return db;
   const open = indexedDB.open(DB_NAME, 1);
   open.onupgradeneeded = () => open.result.createObjectStore(STORE);
-  const db = await req(open);
-  try {
-    const tx = db.transaction(STORE, mode);
-    const out = await fn(tx.objectStore(STORE));
-    await new Promise<void>((ok, err) => { tx.oncomplete = () => ok(); tx.onerror = () => err(tx.error); tx.onabort = () => err(tx.error); });
-    return out;
-  } finally { db.close(); }
+  const d = await req(open);
+  // Let other tabs (or a reset) upgrade or delete the database.
+  d.onversionchange = () => { d.close(); if (db === d) db = null; };
+  d.onclose = () => { if (db === d) db = null; };
+  db = d;
+  return d;
+}
+async function withStore<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => Promise<T>): Promise<T> {
+  const d = db ?? (await connection());
+  const tx = d.transaction(STORE, mode);
+  const done = new Promise<void>((ok, err) => { tx.oncomplete = () => ok(); tx.onerror = () => err(tx.error); tx.onabort = () => err(tx.error); });
+  const out = await fn(tx.objectStore(STORE));
+  await done;
+  return out;
 }
 
 export async function persistenceAvailable(): Promise<boolean> {
@@ -54,7 +67,14 @@ export function validateDoc(x: unknown): EditorDoc | null {
 }
 
 export async function saveDoc(doc: EditorDoc): Promise<void> {
-  await withStore('readwrite', (s) => req(s.put(JSON.parse(JSON.stringify(doc)), 'doc')));
+  const d = db ?? (await connection());
+  // Issue the write and request an immediate commit synchronously, so a save started while the page
+  // is unloading is committed rather than abandoned with the page.
+  const tx = d.transaction(STORE, 'readwrite');
+  const done = new Promise<void>((ok, err) => { tx.oncomplete = () => ok(); tx.onerror = () => err(tx.error); tx.onabort = () => err(tx.error); });
+  tx.objectStore(STORE).put(JSON.parse(JSON.stringify(doc)), 'doc');
+  tx.commit?.();
+  await done;
 }
 
 /** Stored as bytes + type: Blob support in IndexedDB varies between engines. */
@@ -66,7 +86,26 @@ export async function saveReference(blob: Blob | null): Promise<void> {
   });
 }
 
+/**
+ * IndexedDB writes can't complete while a page unloads (its connections are force-closed), so the
+ * document is also stashed synchronously in localStorage on pagehide. The stash wins on the next load.
+ */
+export const PENDING_KEY = 'character-rig:pending-doc';
+export function stashPending(doc: EditorDoc): void {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(doc)); } catch { /* storage full or blocked */ }
+}
+function takePending(): EditorDoc | null {
+  try {
+    const raw = localStorage.getItem(PENDING_KEY);
+    if (raw === null) return null;
+    localStorage.removeItem(PENDING_KEY);
+    return validateDoc(JSON.parse(raw));
+  } catch { return null; }
+}
+
 export async function loadSaved(): Promise<{ doc: EditorDoc | null; reference: Blob | null; corrupt: boolean }> {
+  const pending = takePending();
+  if (pending) await saveDoc(pending);
   return withStore('readwrite', async (s) => {
     const raw = await req(s.get('doc'));
     const refRaw = (await req(s.get('reference'))) as { type: string; data: ArrayBuffer } | undefined;

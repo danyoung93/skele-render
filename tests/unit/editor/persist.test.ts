@@ -64,3 +64,25 @@ describe('validateDoc', () => {
     expect(validateDoc('nope')).toBeNull();
   });
 });
+
+import { stashPending, PENDING_KEY } from '../../../src/editor/persist';
+
+describe('unload stash (review #9)', () => {
+  it('a stashed document wins on the next load, is written to IndexedDB and is removed', async () => {
+    const older = fixtureDoc();
+    await saveDoc(older);
+    const newer = { ...fixtureDoc(), name: 'newer' };
+    stashPending(newer);
+    expect(localStorage.getItem(PENDING_KEY)).not.toBeNull();
+    const r = await loadSaved();
+    expect(r.doc!.name).toBe('newer');
+    expect(localStorage.getItem(PENDING_KEY)).toBeNull();
+    expect((await loadSaved()).doc!.name).toBe('newer');
+  });
+  it('an invalid stash is ignored and removed', async () => {
+    await saveDoc(fixtureDoc());
+    localStorage.setItem(PENDING_KEY, '{"version":9}');
+    expect((await loadSaved()).doc!.name).toBe('test-character');
+    expect(localStorage.getItem(PENDING_KEY)).toBeNull();
+  });
+});

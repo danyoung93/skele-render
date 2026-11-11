@@ -3,7 +3,7 @@ import type { SheetBus } from '../ui/sheet-bus';
 import { download } from '../ui/util';
 import { importSheet } from './import';
 import { emptyDoc, hasShapes } from './model';
-import { loadSaved, persistenceAvailable, saveDoc, saveReference } from './persist';
+import { loadSaved, persistenceAvailable, saveDoc, saveReference, stashPending } from './persist';
 import { serialize } from './serialize';
 import { createPanel } from './panel';
 import { createStore, type Store } from './store';
@@ -125,7 +125,8 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     try {
       const saved = await loadSaved();
       if (saved.doc) {
-        store.reset(saved.doc, { undoable: false, dirty: false });
+        // Restored work hasn't been downloaded (as far as we know), so replacing it should ask first.
+        store.reset(saved.doc, { undoable: false, dirty: hasShapes(saved.doc) });
         // Show the restored drawing in Animate too, unless it is empty.
         if (hasShapes(saved.doc)) store.flushPreview(); else store.cancelPreview();
       }
@@ -137,6 +138,15 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => { saveDoc(doc).catch(off); }, AUTOSAVE_MS);
     });
+    // Save at once when the page is going away, so the last edit isn't lost to the autosave delay.
+    const flush = () => {
+      if (!saveTimer || store.get().autosave === 'off') return;
+      clearTimeout(saveTimer); saveTimer = null;
+      stashPending(store.doc());
+      saveDoc(store.doc()).catch(off);
+    };
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
     store.onReference((blob) => { if (store.get().autosave === 'on') saveReference(blob).catch(off); });
   })();
 

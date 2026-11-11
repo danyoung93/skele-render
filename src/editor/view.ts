@@ -174,8 +174,15 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
     if (!e.ctrlKey && tool?.wheel?.(e, ctx)) return;
     store.setViewport(zoomAt(store.get().viewport, local(e), Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))));
   }, { passive: false });
-  window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !isTyping(e)) { spaceDown = true; if (!isTyping(e)) e.preventDefault(); } });
+  // Space-to-pan only while the canvas is on screen and focus isn't on a control, so Space still
+  // presses buttons and checkboxes everywhere else.
+  window.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' || !el.getClientRects().length || isControl(e.target)) return;
+    spaceDown = true;
+    e.preventDefault();
+  });
   window.addEventListener('keyup', (e) => { if (e.code === 'Space') spaceDown = false; });
+  window.addEventListener('blur', () => { spaceDown = false; });
   new ResizeObserver(() => {
     if (!el.clientWidth) return;
     if (!fitted) { fitted = true; fit(); } else render();
@@ -187,6 +194,12 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
     zoomBy(f) { const { w, h } = size(); store.setViewport(zoomAt(store.get().viewport, [w / 2, h / 2], f)); },
     setTool(t) { if (tool && tool !== t) { tool.cancel?.(ctx); toolLayer.innerHTML = ''; } tool = t; render(); },
   };
+}
+
+/** Focusable controls that handle Space themselves. */
+function isControl(t: EventTarget | null): boolean {
+  if (!(t instanceof HTMLElement)) return false;
+  return ['INPUT', 'BUTTON', 'SELECT', 'TEXTAREA', 'A', 'SUMMARY'].includes(t.tagName) || t.isContentEditable || t.getAttribute('role') === 'button';
 }
 
 const TEXT_INPUTS = new Set(['text', 'number', 'search', 'email', 'url', 'password', 'tel']);

@@ -399,4 +399,94 @@ test.describe('review fixes', () => {
     await page.keyboard.press('Control+z');
     await expect(page.locator('[data-shape-id]')).toHaveCount(0);
   });
+
+  test('Space still presses buttons and checkboxes, in Animate and in the editor panel (#2)', async ({ page }) => {
+    await page.goto('/');
+    const play = page.getByRole('button', { name: 'Pause' });
+    await play.focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    const vis = page.locator('[data-part-visible="head"]');
+    await vis.focus();
+    await page.keyboard.press('Space');
+    await expect(vis).not.toBeChecked();
+  });
+
+  test('Space held while the window loses focus does not leave the canvas stuck in pan mode (#2)', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-id="canvas"]').focus();
+    await page.keyboard.down('Space');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await expect(count(page, 'head')).toHaveText('1');
+  });
+
+  test('dragging in the colour picker is one undo step (#3)', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await page.locator('[data-id="fill"]').evaluate((el: HTMLInputElement) => {
+      for (const c of ['#110000', '#220000', '#330000', '#440000', '#550000']) { el.value = c; el.dispatchEvent(new Event('input', { bubbles: true })); }
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('[data-part="head"]')).toHaveAttribute('fill', '#550000');
+    await page.keyboard.press('Control+z');
+    await expect(page.locator('[data-part="head"]')).toHaveAttribute('fill', '#cccccc');
+  });
+
+  test('hiding a part deselects its shapes, so Delete cannot remove them unseen (#7)', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await page.keyboard.press('v');
+    await page.locator('[data-part-visible="head"]').uncheck();
+    await page.keyboard.press('Delete');
+    await page.locator('[data-part-visible="head"]').check();
+    await expect(count(page, 'head')).toHaveText('1');
+  });
+
+  test('Edit points forgets the chosen point when another path is selected (#8)', async ({ page }) => {
+    await openEditor(page);
+    await page.keyboard.press('p');
+    for (const [x, y] of [[750, 510], [830, 510], [790, 565]]) await page.mouse.click(...(await toClient(page, x, y)));
+    await page.mouse.click(...(await toClient(page, 750, 510)));
+    for (const [x, y] of [[894, 396], [978, 396], [936, 450]]) await page.mouse.click(...(await toClient(page, x, y)));
+    await page.mouse.click(...(await toClient(page, 894, 396)));
+    await page.keyboard.press('a');
+    await page.mouse.click(...(await toClient(page, 790, 525)));
+    await page.locator('[data-node="1"]').click();
+    await page.keyboard.press('v');
+    await page.mouse.click(...(await toClient(page, 936, 415)));
+    await page.keyboard.press('a');
+    await page.keyboard.press('Delete');
+    const d = (await page.locator('[data-part="mouth_half"]').getAttribute('d'))!;
+    expect((d.match(/C/g) ?? []).length).toBe(3);
+  });
+
+  test('an edit made just before a reload is not lost (#9)', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="rect"]').click();
+    await dragSheet(page, [450, 100], [650, 400]);
+    await page.reload();
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await expect(count(page, 'torso')).toHaveText('1');
+  });
+
+  test('after a reload, New blank sheet still asks before replacing undownloaded work (#11)', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await expect(count(page, 'head')).toHaveText('1');
+    let asked = false;
+    page.once('dialog', (dlg) => { asked = true; void dlg.dismiss(); });
+    await page.locator('[data-id="new-sheet"]').click();
+    expect(asked).toBe(true);
+    await expect(count(page, 'head')).toHaveText('1');
+  });
 });
+

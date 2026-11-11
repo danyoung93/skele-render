@@ -13,6 +13,8 @@ type Drag =
 
 export function createPointsTool(): Tool {
   let selectedNode: number | null = null;
+  /** The path `selectedNode` belongs to; a different selection makes it meaningless. */
+  let nodeOwner: string | null = null;
   let drag: Drag | null = null;
 
   const selectedPath = (ctx: ToolCtx): PathShape | null => {
@@ -40,7 +42,7 @@ export function createPointsTool(): Tool {
     });
     s.nodes.forEach((nd, i) => {
       const p = W(nd.p), r = 4.5 * px;
-      parts.push(`<rect class="node${i === selectedNode ? ' sel' : ''}" data-node="${i}" x="${n(p[0] - r)}" y="${n(p[1] - r)}" width="${n(2 * r)}" height="${n(2 * r)}" stroke-width="${n(px)}"/>`);
+      parts.push(`<rect class="node${i === selectedNode && nodeOwner === s.id ? ' sel' : ''}" data-node="${i}" x="${n(p[0] - r)}" y="${n(p[1] - r)}" width="${n(2 * r)}" height="${n(2 * r)}" stroke-width="${n(px)}"/>`);
     });
     ctx.layer.innerHTML = parts.join('');
   }
@@ -53,6 +55,7 @@ export function createPointsTool(): Tool {
       const nodeAttr = t?.getAttribute('data-node'), ctrlAttr = t?.getAttribute('data-ctrl');
       if (s && nodeAttr !== null && nodeAttr !== undefined) {
         selectedNode = Number(nodeAttr);
+        nodeOwner = s.id;
         drag = { kind: 'node', i: selectedNode, start: toLocal(s, ctx.toSheet(e)), base: doc, shape: s };
         draw(ctx);
         return;
@@ -90,16 +93,18 @@ export function createPointsTool(): Tool {
       if (hit.dist > INSERT_RADIUS_PX * ctx.px()) return;
       ctx.store.commit(apply(ctx, ctx.store.doc(), s, insertNode(s, hit.segment, hit.t)));
       selectedNode = hit.segment + 1;
+      nodeOwner = s.id;
     },
     key(e, ctx) {
       const s = selectedPath(ctx);
-      if (!s || selectedNode === null || (e.key !== 'Delete' && e.key !== 'Backspace')) return false;
+      if (!s || selectedNode === null || nodeOwner !== s.id || selectedNode >= s.nodes.length || (e.key !== 'Delete' && e.key !== 'Backspace')) return false;
       const after = removeNode(s, selectedNode);
       selectedNode = null;
       ctx.store.commit(after ? apply(ctx, ctx.store.doc(), s, after) : deleteShapes(ctx.store.doc(), [s.id]));
       return true;
     },
     cancel(ctx) {
+      selectedNode = null; nodeOwner = null;
       if (!drag) return false;
       drag = null;
       ctx.store.abortTransient();
