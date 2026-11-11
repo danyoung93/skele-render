@@ -10,7 +10,7 @@ export const OUTLINE_LEVEL = 0.35;
 export const DEFAULT_TOLERANCE = 12;
 export const DEFAULT_SMOOTHNESS = 0.6;
 export type TraceResult =
-  | { nodes: PathNode[]; colour: [number, number, number]; area: number; hitLimit: boolean }
+  | { nodes: PathNode[]; colour: [number, number, number]; area: number; hitLimit: boolean; mask: Uint8Array; coreMask: Uint8Array }
   | { error: 'outside' | 'too-small' };
 
 export function traceAt(img: Img, seed: [number, number], opts: { tolerance: number; smoothness: number; limit: Limit; edgesAreLimits?: LimitEdges }): TraceResult {
@@ -20,5 +20,5 @@ export function traceAt(img: Img, seed: [number, number], opts: { tolerance: num
   if (r.core < MIN_AREA) return { error: 'too-small' };
   const outline = outerContour(r.field, img.width, img.height, OUTLINE_LEVEL);
   if (outline.length < 3) return { error: 'too-small' };
-  return { nodes: fitClosed(outline, opts.smoothness), colour: r.colour, area: r.count, hitLimit: r.hitLimit };
+  return { nodes: fitClosed(outline, opts.smoothness), colour: r.colour, area: r.count, hitLimit: r.hitLimit, mask: r.mask, coreMask: r.coreMask };
 }

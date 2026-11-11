@@ -11,6 +11,12 @@ const HOVER_MS = 100;
 const n = (v: number) => String(Math.round(v * 1000) / 1000);
 const hex = (c: number[]) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
 
+/**
+ * The last window of pixels and trace, reused while the pointer stays in the same area with the same settings:
+ * hovering across one area (or clicking where the preview was computed) does no work.
+ */
+let cache: { key: string; data: ImageData; result: TraceResult | null } | null = null;
+
 /** Traces at a sheet point, reading only the part box (+ margin) from the reference image. */
 function traceSheet(ctx: ToolCtx, p: Vec2): { result: TraceResult; toSheet: (q: Vec2) => Vec2; part: ReturnType<typeof partForPoint> } | null {
   const { store } = ctx;
@@ -26,16 +32,24 @@ function traceSheet(ctx: ToolCtx, p: Vec2): { result: TraceResult; toSheet: (q: 
   if (seed[0] < 0 || seed[1] < 0 || seed[0] >= img.w || seed[1] >= img.h || lx1 <= lx0 || ly1 <= ly0) {
     return { result: { error: 'outside' }, toSheet, part };
   }
-  // The part's box (plus margin) is the search limit, so only that window of pixels is read.
-  const data = img.pixels.getImageData(lx0, ly0, lx1 - lx0, ly1 - ly0);
   const { traceTolerance: tolerance, traceSmoothness: smoothness } = store.get();
+  const key = [img.url, part, lx0, ly0, lx1, ly1, tolerance, smoothness].join('|');
+  if (!cache || cache.key !== key) {
+    // The part's box (plus margin) is the search limit, so only that window of pixels is read.
+    cache = { key, data: img.pixels.getImageData(lx0, ly0, lx1 - lx0, ly1 - ly0), result: null };
+  }
+  const data = cache.data;
   const local: Vec2 = [seed[0] - lx0, seed[1] - ly0];
+  const prev = cache.result;
+  // Reuse only where the colour itself matched: a different colour inside a filled hole needs its own trace.
+  if (prev && !('error' in prev) && prev.coreMask[Math.floor(local[1]) * data.width + Math.floor(local[0])]) return { result: prev, toSheet, part };
   // The window is the limit; its edges count as "the limit" unless they are the image's own edges.
   const result = traceAt(
     { width: data.width, height: data.height, data: data.data },
     local,
     { tolerance, smoothness, limit: { x0: 0, y0: 0, x1: data.width, y1: data.height }, edgesAreLimits: { left: lx0 > 0, top: ly0 > 0, right: lx1 < img.w, bottom: ly1 < img.h } },
   );
+  cache.result = result;
   return { result, toSheet, part };
 }
 

@@ -95,3 +95,35 @@ describe('traceAt edge cases', () => {
     expect(performance.now() - t0).toBeLessThan(150);
   });
 });
+
+describe('review fixes', () => {
+  it('traces a 1-px line and a click on a square\'s corner pixel (#2)', () => {
+    const line = paint(100, 40, WHITE, [{ inside: rect(10, 20, 90, 21), colour: RED }]);
+    const r = traceAt(line, [50, 20], { ...opts, limit: all(100, 40) });
+    expect('error' in r ? r.error : 'ok').toBe('ok');
+    const sq = paint(60, 60, WHITE, [{ inside: rect(20, 20, 40, 40), colour: RED }]);
+    const c = traceAt(sq, [20, 20], { ...opts, limit: all(60, 60) });
+    expect('error' in c ? c.error : 'ok').toBe('ok');
+  });
+  it('traces a large area quickly: a 1536 × 1920 window in under 300 ms (#1)', () => {
+    const big = paint(1536, 1920, WHITE, [{ inside: circle(768, 960, 700), colour: RED }]);
+    traceAt(big, [768, 960], { ...opts, limit: all(1536, 1920) }); // warm up
+    const t0 = performance.now();
+    traceAt(big, [768, 960], { ...opts, limit: all(1536, 1920) });
+    expect(performance.now() - t0).toBeLessThan(300);
+  });
+  it('returns the colour-matched mask (holes excluded) so a hover can be reused safely (#1)', () => {
+    const ring = (x: number, y: number) => circle(60, 60, 40)(x, y) && !circle(60, 60, 20)(x, y);
+    const rimg = paint(120, 120, WHITE, [{ inside: ring, colour: RED }]);
+    const rr = ok(traceAt(rimg, [60, 30], { ...opts, limit: all(120, 120) }));
+    expect(rr.mask[60 * 120 + 60]).toBe(1);
+    expect(rr.coreMask[60 * 120 + 60]).toBe(0);
+    expect(rr.coreMask[30 * 120 + 60]).toBe(1);
+  });
+  it('returns the area mask (#1)', () => {
+    const img = paint(120, 120, WHITE, [{ inside: circle(60, 60, 40), colour: RED }]);
+    const r = ok(traceAt(img, [60, 60], { ...opts, limit: all(120, 120) }));
+    expect(r.mask[60 * 120 + 30]).toBe(1);
+    expect(r.mask[5 * 120 + 5]).toBe(0);
+  });
+});

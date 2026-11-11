@@ -10,6 +10,7 @@ async function referencePng(info: TestInfo): Promise<string> {
     let c = [255, 255, 255];
     if ((x + 0.5 - 192) ** 2 + (y + 0.5 - 192) ** 2 <= 100 * 100) c = [210, 50, 40];
     if (x >= 450 && x < 650 && y >= 100 && y < 400) c = [40, 90, 200];
+    if (x >= 520 && x < 580 && y >= 200 && y < 260) c = [240, 200, 40];
     if (x >= 800 && x < 802 && y >= 80 && y < 82) c = [0, 0, 0];
     const i = (y * 1024 + x) * 4;
     png.data[i] = c[0]; png.data[i + 1] = c[1]; png.data[i + 2] = c[2]; png.data[i + 3] = 255;
@@ -42,7 +43,7 @@ test.describe('Trace tool', () => {
     expect(Math.abs(b.x + b.w / 2 - 192)).toBeLessThan(1.5);
     expect(Math.abs(b.w - 200)).toBeLessThan(2);
     await expect(page.locator('[data-id="style-title"]')).toHaveText('Selected (1)');
-    await page.mouse.click(...(await toClient(page, 550, 250)));
+    await page.mouse.click(...(await toClient(page, 470, 150)));
     await expect(count(page, 'torso')).toHaveText('1');
     const t = await pathBox(page, 'torso');
     expect(Math.abs(t.w - 200)).toBeLessThan(2); expect(Math.abs(t.h - 300)).toBeLessThan(2);
@@ -83,4 +84,17 @@ test.describe('Trace tool', () => {
     await expect(page.locator('[data-id="banner"]')).toContainText('Load a reference image first');
     expect(errors).toEqual([]);
   });
+
+  test('after tracing an area, clicking a different colour inside it traces that colour (no stale reuse)', async ({ page }, info) => {
+    await withReference(page, info);
+    await page.keyboard.press('t');
+    await page.mouse.move(...(await toClient(page, 470, 150)));
+    await page.mouse.click(...(await toClient(page, 470, 150)));
+    await page.mouse.move(...(await toClient(page, 550, 230)));
+    await page.waitForTimeout(150);
+    await page.mouse.click(...(await toClient(page, 550, 230)));
+    await expect(count(page, 'torso')).toHaveText('2');
+    await expect(page.locator('[data-part="torso"]').last()).toHaveAttribute('fill', '#f0c828');
+  });
 });
+
