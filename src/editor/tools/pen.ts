@@ -1,5 +1,6 @@
 /** Bézier pen (sheet editor spec §2.3). */
 import { addShape, partForPoint } from '../commands';
+import { mirrorRefusal } from '../mirror';
 import type { PathNode, PathShape, Vec2 } from '../model';
 import { pathData } from '../serialize';
 import type { Tool, ToolCtx } from './types';
@@ -46,6 +47,10 @@ export function createPenTool(): Tool {
         return;
       }
       const first = !nodes;
+      if (first) {
+        const refusal = mirrorRefusal(ctx.store.doc(), partForPoint(p, ctx.store.get().active));
+        if (refusal) { ctx.store.set({ message: { kind: 'info', text: refusal } }); return; }
+      }
       nodes = [...(nodes ?? []), { p, in: [p[0], p[1]], out: [p[0], p[1]] }];
       dragging = true;
       if (first) {

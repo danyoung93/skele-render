@@ -1,5 +1,6 @@
 /** Ellipse and rectangle tools (sheet editor spec §2.3). */
 import { addShape, partForPoint } from '../commands';
+import { mirrorRefusal } from '../mirror';
 import type { NewShape, Vec2 } from '../model';
 import { shapeSvg } from '../serialize';
 import type { Tool } from './types';
@@ -27,8 +28,11 @@ export function createShapeTool(kind: 'ellipse' | 'rect'): Tool {
     id: kind,
     cursor: 'crosshair',
     down(e, ctx) {
-      start = ctx.toSheet(e);
-      const part = partForPoint(start, ctx.store.get().active);
+      const p0 = ctx.toSheet(e);
+      const part = partForPoint(p0, ctx.store.get().active);
+      const refusal = mirrorRefusal(ctx.store.doc(), part);
+      if (refusal) { ctx.store.set({ message: { kind: 'info', text: refusal } }); return; }
+      start = p0;
       if (part !== ctx.store.get().active) ctx.store.setActive(part);
     },
     move(e, ctx) {

@@ -22,6 +22,8 @@ export interface EditorDoc {
   nextId: number;
   parts: Record<PartId, EditorShape[]>;
   reference: ReferenceState;
+  /** Mirror arms: the side drawn by hand ('L' or 'R'); the other side is a flipped copy. */
+  mirrorArms?: 'L' | 'R' | null;
 }
 export interface Box { x0: number; y0: number; x1: number; y1: number }
 

@@ -47,3 +47,5 @@
 .readout { font-variant-numeric: tabular-nums; margin: 4px 0; }
 .hint { color: var(--muted); font-size: 12px; margin: 4px 0; }
 @media (max-width: 860px) { .rig-editor { grid-template-columns: 1fr; grid-template-rows: 60vh auto; } }
+.canvas .mirrored { opacity: 0.55; }
+.part-count.mirrored { font-style: italic; }

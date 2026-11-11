@@ -2,6 +2,7 @@
 import { AREAS, PART_IDS } from '../sheet/layout';
 import { guidesLayer } from '../sheet/template';
 import type { Vec2 } from './model';
+import { mirrorTarget, resolvedParts } from './mirror';
 import { selectionFrame } from './selection';
 import { shapeSvg } from './serialize';
 import type { Store } from './store';
@@ -68,8 +69,12 @@ export function createCanvasView(host: HTMLElement, store: Store): CanvasView {
       refImg.style.display = '';
     } else refImg.style.display = 'none';
     // Shapes
+    const resolved = resolvedParts(doc);
     shapesG.innerHTML = PART_IDS.filter((p) => !st.hidden.has(p))
-      .map((p) => doc.parts[p].map((s) => shapeSvg(s, ` data-shape-id="${s.id}" data-part="${p}"`)).join('')).join('');
+      .map((p) => mirrorTarget(doc, p)
+        // The generated (mirrored) side: shown, but not selectable.
+        ? resolved[p].map((s) => shapeSvg(s, ` data-mirrored-part="${p}" class="mirrored" pointer-events="none"`)).join('')
+        : doc.parts[p].map((s) => shapeSvg(s, ` data-shape-id="${s.id}" data-part="${p}"`)).join('')).join('');
     // Active part box
     const a = AREAS[st.active];
     activeG.innerHTML = `<rect class="active-box" x="${a.x - 4}" y="${a.y - 4}" width="${a.w + 8}" height="${a.h + 8}" stroke-width="${n(2 * px)}"/>`;

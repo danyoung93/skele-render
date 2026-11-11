@@ -63,6 +63,7 @@ export function validateDoc(x: unknown): EditorDoc | null {
   if (d.version !== 1 || typeof d.name !== 'string' || !isNum(d.nextId) || !parts || !ref) return null;
   if (!PART_IDS.every((p) => Array.isArray(parts[p]) && (parts[p] as unknown[]).every(validShape))) return null;
   if (!['x', 'y', 'scale', 'opacity'].every((k) => isNum(ref[k])) || typeof ref.locked !== 'boolean' || typeof ref.hasImage !== 'boolean') return null;
+  if (d.mirrorArms !== undefined && d.mirrorArms !== null && d.mirrorArms !== 'L' && d.mirrorArms !== 'R') return null;
   return x as EditorDoc;
 }
 

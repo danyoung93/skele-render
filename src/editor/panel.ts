@@ -7,6 +7,7 @@ import type { SheetBus } from '../ui/sheet-bus';
 import { esc, warningsHtml } from '../ui/util';
 import { flipShapes, moveToPart, reorder, setSize, updateShape } from './commands';
 import { applyStyle as applyStyleTo } from './style-actions';
+import { mirrorTarget, setMirrorArms } from './mirror';
 import { findShape, normAngle, tightBounds, type EditorShape, type Paint, type Style } from './model';
 import type { Store } from './store';
 import type { CanvasView } from './view';
@@ -32,6 +33,8 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     <div class="row"><button class="btn" data-id="new-sheet">New blank sheet</button>
       <button class="btn" data-id="edit-current" title="Turn the sheet shown in Animate into editable shapes">Edit current sheet</button></div>
     <div class="row"><button class="btn primary" data-id="download-svg">Download SVG</button></div>
+    <label class="row" title="Draw one arm; the other side is a flipped copy">Mirror arms
+      <select data-id="mirror-arms"><option value="">Off</option><option value="L">Left → Right</option><option value="R">Right → Left</option></select></label>
   </section>
   <section class="ps"><h2>Parts</h2>
     <div class="parts" data-id="parts">${PART_IDS.map((p) => `
@@ -144,6 +147,8 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     store.commit({ ...store.doc(), name });
   });
 
+  const mirrorSel = $<HTMLSelectElement>('mirror-arms');
+  mirrorSel.addEventListener('change', () => store.commit(setMirrorArms(store.doc(), (mirrorSel.value || null) as 'L' | 'R' | null)));
   $('duplicate').addEventListener('click', () => hooks.duplicate());
   $('flip-h').addEventListener('click', () => store.commit(flipShapes(store.doc(), store.get().selection, 'h')));
   $('flip-v').addEventListener('click', () => store.commit(flipShapes(store.doc(), store.get().selection, 'v')));
@@ -224,8 +229,14 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   function refresh() {
     const st = store.get(), doc = store.doc(), sel = selected();
     setIfIdle(nameIn, doc.name);
+    if (document.activeElement !== mirrorSel) mirrorSel.value = doc.mirrorArms ?? '';
     for (const p of PART_IDS) {
-      root.querySelector(`[data-part-count="${p}"]`)!.textContent = String(doc.parts[p].length);
+      const from = mirrorTarget(doc, p);
+      const countEl = root.querySelector(`[data-part-count="${p}"]`)!;
+      countEl.textContent = from ? 'mirrored' : String(doc.parts[p].length);
+      countEl.classList.toggle('mirrored', !!from);
+      const opt = partSelect.querySelector<HTMLOptionElement>(`option[value="${p}"]`);
+      if (opt) opt.disabled = !!from;
       root.querySelector(`[data-part-row="${p}"]`)!.classList.toggle('active', st.active === p);
       setIfIdle(root.querySelector<HTMLInputElement>(`[data-part-visible="${p}"]`)!, String(!st.hidden.has(p)), 'checked');
     }

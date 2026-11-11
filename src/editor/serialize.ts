@@ -1,6 +1,7 @@
 /** Editor document → template-layout SVG (sheet editor spec §4.1). */
 import { PART_IDS, REF_SIZE } from '../sheet/layout';
 import { guidesLayer } from '../sheet/template';
+import { resolvedParts } from './mirror';
 import { centre, type EditorDoc, type EditorShape, type Style } from './model';
 
 const n = (v: number) => String(Math.round(v * 1000) / 1000);
@@ -42,12 +43,13 @@ export function shapeSvg(s: EditorShape, extra = ''): string {
 }
 
 export function serialize(doc: EditorDoc): string {
+  const parts = resolvedParts(doc);
   const layers = PART_IDS.map((p) => {
-    const shapes = doc.parts[p].map((s) => `    ${shapeSvg(s)}`).join('\n');
+    const shapes = parts[p].map((s) => `    ${shapeSvg(s)}`).join('\n');
     return `  <g id="${p}" inkscape:groupmode="layer" inkscape:label="${p}">\n${shapes}\n  </g>`;
   }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 ${REF_SIZE} ${REF_SIZE}" width="${REF_SIZE}" height="${REF_SIZE}" data-character-name="${esc(doc.name)}">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" viewBox="0 0 ${REF_SIZE} ${REF_SIZE}" width="${REF_SIZE}" height="${REF_SIZE}" data-character-name="${esc(doc.name)}"${doc.mirrorArms ? ` data-mirror-arms="${doc.mirrorArms}"` : ''}>
 ${layers}
   ${guidesLayer()}
 </svg>

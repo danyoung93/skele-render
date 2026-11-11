@@ -711,3 +711,30 @@ test.describe('change part', () => {
     await expect(page.locator('[data-id="part-select"]')).toBeDisabled();
   });
 });
+
+test.describe('mirror arms (sheet)', () => {
+  test('Left → Right draws a flipped, unselectable copy; Animate gets both; Off makes it real', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-id="mirror-arms"]').selectOption('L');
+    await page.locator('[data-tool="rect"]').click();
+    await dragSheet(page, [40, 620], [70, 700]);
+    await expect(count(page, 'upper_arm_L')).toHaveText('1');
+    await expect(count(page, 'upper_arm_R')).toHaveText('mirrored');
+    const copy = page.locator('[data-mirrored-part="upper_arm_R"]');
+    await expect(copy).toHaveCount(1);
+    await expect(copy).toHaveAttribute('x', '570');
+    await expect(copy).toHaveCSS('pointer-events', 'none');
+    // Drawing in the generated side is refused with a message.
+    await dragSheet(page, [520, 620], [560, 700]);
+    await expect(page.locator('[data-id="banner"]')).toContainText('mirrored');
+    await page.getByRole('radio', { name: 'Animate' }).click();
+    await expect(page.locator('.warnings')).not.toContainText('upper_arm_R layer is empty');
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await page.locator('[data-id="mirror-arms"]').selectOption('');
+    await expect(count(page, 'upper_arm_R')).toHaveText('1');
+    await expect(page.locator('[data-shape-id][data-part="upper_arm_R"]')).toHaveAttribute('x', '570');
+    await page.locator('[data-id="canvas"]').focus();
+    await page.keyboard.press('Control+z');
+    await expect(count(page, 'upper_arm_R')).toHaveText('mirrored');
+  });
+});

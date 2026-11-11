@@ -3,6 +3,7 @@ import type { GradientCommon, Group, ShapeItem } from '../lottie/types';
 import { PART_IDS, type PartId } from '../sheet/layout';
 import type { LoadedSheet } from '../sheet/load';
 import { addShape } from './commands';
+import { mirrorTarget } from './mirror';
 import { emptyDoc, type EditorDoc, type Paint, type PathNode, type Style, type Vec2 } from './model';
 
 const hex = (c: number[]) => '#' + c.slice(0, 3).map((v) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0')).join('');
@@ -44,6 +45,12 @@ export function importSheet(sheet: LoadedSheet): { doc: EditorDoc; warnings: { p
         doc = addShape(doc, part, { kind: 'path', nodes, closed: c, rotation: 0, style: { ...style } }).doc;
       }
     }
+  }
+  // Sheets saved with mirrored arms: restore the setting; the generated side is rebuilt from its source.
+  const mirror = /<svg\b[^>]*\bdata-mirror-arms="(L|R)"/.exec(sheet.svgText)?.[1] as 'L' | 'R' | undefined;
+  if (mirror) {
+    doc = { ...doc, mirrorArms: mirror };
+    for (const p of PART_IDS) if (mirrorTarget(doc, p)) doc = { ...doc, parts: { ...doc.parts, [p]: [] } };
   }
   return { doc, warnings };
 }

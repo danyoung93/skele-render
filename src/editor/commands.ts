@@ -102,6 +102,15 @@ export function flipShapes(doc: EditorDoc, ids: string[], axis: 'h' | 'v'): Edit
   });
 }
 
+/** Mirrors one shape across the vertical line x = axisX (geometry flipped, rotation reversed). */
+export function mirrorShapeX<S extends EditorShape>(s: S, axisX: number): S {
+  const c = centre(s);
+  const mirrored = mapGeometry(s, -1, 2 * c[0], 1, 0);
+  const fixed = s.kind === 'rect' ? normaliseRect(mirrored as Extract<EditorShape, { kind: 'rect' }>) : mirrored;
+  const nx = 2 * axisX - c[0];
+  return { ...translateShape(fixed, nx - c[0], 0), rotation: normAngle(-s.rotation) } as S;
+}
+
 /** Mirroring gives a rect negative width/height; express it as the same box with positive size. */
 function normaliseRect<S extends Extract<EditorShape, { kind: 'rect' }>>(r: S): S {
   return { ...r, x: Math.min(r.x, r.x + r.w), y: Math.min(r.y, r.y + r.h), w: Math.abs(r.w), h: Math.abs(r.h) };
