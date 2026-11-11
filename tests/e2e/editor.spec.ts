@@ -265,6 +265,7 @@ test.describe('reference image', () => {
   test('a file that is not an image shows an error and keeps the previous reference', async ({ page }, info) => {
     await openEditor(page);
     await page.locator('[data-id="ref-load"]').setInputFiles(await refPng(info));
+    await expect(img(page)).toBeVisible();
     const href = await img(page).getAttribute('href');
     const bad = info.outputPath('notes.png');
     (await import('node:fs')).writeFileSync(bad, 'not really a png');
