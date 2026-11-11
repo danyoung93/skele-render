@@ -382,3 +382,21 @@ test.describe('sheet actions and autosave', () => {
     await expect(count(page, 'head')).toHaveText('1');
   });
 });
+
+test.describe('review fixes', () => {
+  test('Ctrl+Z during a drag puts the shape back and records nothing (#5)', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="rect"]').click();
+    await dragSheet(page, [420, 100], [520, 200]);
+    await page.keyboard.press('v');
+    const x0 = await page.locator('[data-shape-id]').getAttribute('x');
+    await page.mouse.move(...(await toClient(page, 470, 150)));
+    await page.mouse.down();
+    await page.mouse.move(...(await toClient(page, 520, 150)), { steps: 5 });
+    await page.keyboard.press('Control+z');
+    await page.mouse.up();
+    await expect(page.locator('[data-shape-id]')).toHaveAttribute('x', x0!);
+    await page.keyboard.press('Control+z');
+    await expect(page.locator('[data-shape-id]')).toHaveCount(0);
+  });
+});

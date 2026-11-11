@@ -41,6 +41,13 @@ export type Store = ReturnType<typeof createStore>;
 
 export const PREVIEW_THROTTLE_MS = 200;
 
+/** A command bug must never put NaN/Infinity into the document: it would make the autosave unreadable. */
+export function finiteDoc(d: EditorDoc): boolean {
+  let ok = true;
+  JSON.stringify(d, (_k, v) => { if (typeof v === 'number' && !Number.isFinite(v)) ok = false; return v; });
+  return ok;
+}
+
 export function createStore(bus: SheetBus, initial: EditorDoc) {
   let state: EditorState = {
     history: createHistory(initial), selection: [], active: 'head', tool: 'select', style: DEFAULT_STYLE,
@@ -83,7 +90,8 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
     onDoc(fn: (doc: EditorDoc) => void) { docListeners.add(fn); return () => docListeners.delete(fn); },
     set(patch: Partial<EditorState>) { state = { ...state, ...patch }; notify(); },
     commit(next: EditorDoc) {
-      dragBase = null;
+      if (!finiteDoc(next)) return;
+      this.endTransient();
       if (next === doc()) return;
       state = { ...state, history: push(state.history, next), dirty: true };
       pruneSelection(next);
@@ -91,6 +99,7 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
     },
     /** Updates the present document without a history entry (during drags). */
     transient(next: EditorDoc) {
+      if (!finiteDoc(next)) return;
       if (!dragBase) dragBase = doc();
       state = { ...state, history: { ...state.history, present: next } };
       docChanged(); notify();
@@ -104,15 +113,22 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
       state = { ...state, history: push({ ...state.history, present: base }, end), dirty: true };
       notify();
     },
+    /** Abandons an open gesture: the document returns to its pre-gesture state, with no history step. */
+    abortTransient() {
+      if (!dragBase) return;
+      state = { ...state, history: { ...state.history, present: dragBase } };
+      dragBase = null;
+      pruneSelection(doc()); docChanged(); notify();
+    },
     /** Replaces the document and history (new sheet, restore). */
     reset(next: EditorDoc, opts: { undoable: boolean; dirty: boolean }) {
-      dragBase = null;
+      this.endTransient();
       const history = opts.undoable ? push(state.history, next) : createHistory(next);
       state = { ...state, history, selection: [], dirty: opts.dirty };
       docChanged(); notify();
     },
-    undo() { state = { ...state, history: hUndo(state.history), dirty: true }; pruneSelection(doc()); docChanged(); notify(); },
-    redo() { state = { ...state, history: hRedo(state.history), dirty: true }; pruneSelection(doc()); docChanged(); notify(); },
+    undo() { this.endTransient(); state = { ...state, history: hUndo(state.history), dirty: true }; pruneSelection(doc()); docChanged(); notify(); },
+    redo() { this.endTransient(); state = { ...state, history: hRedo(state.history), dirty: true }; pruneSelection(doc()); docChanged(); notify(); },
     setTool(tool: ToolId) { state = { ...state, tool }; notify(); },
     select(ids: string[]) { state = { ...state, selection: ids }; notify(); },
     setActive(active: PartId) { state = { ...state, active }; notify(); },

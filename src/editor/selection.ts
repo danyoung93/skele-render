@@ -50,7 +50,7 @@ export function dragBox(b: Box, handle: Handle, p: Vec2, keepRatio: boolean): Bo
   if (handle.includes('w')) nb.x0 = Math.min(p[0], b.x1 - 1);
   if (handle.includes('s')) nb.y1 = Math.max(p[1], b.y0 + 1);
   if (handle.includes('n')) nb.y0 = Math.min(p[1], b.y1 - 1);
-  if (keepRatio && handle.length === 2) {
+  if (keepRatio && handle.length === 2 && b.x1 > b.x0 && b.y1 > b.y0) {
     const w = b.x1 - b.x0, h = b.y1 - b.y0, k = Math.max((nb.x1 - nb.x0) / w, (nb.y1 - nb.y0) / h);
     if (handle.includes('e')) nb.x1 = nb.x0 + w * k; else nb.x0 = nb.x1 - w * k;
     if (handle.includes('s')) nb.y1 = nb.y0 + h * k; else nb.y0 = nb.y1 - h * k;

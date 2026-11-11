@@ -102,7 +102,7 @@ export function createPointsTool(): Tool {
     cancel(ctx) {
       if (!drag) return false;
       drag = null;
-      ctx.store.endTransient();
+      ctx.store.abortTransient();
       return true;
     },
     draw,

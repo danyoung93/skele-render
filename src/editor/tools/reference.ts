@@ -31,7 +31,7 @@ export function createReferenceTool(): Tool {
     },
     cancel(ctx) {
       if (!drag) return false;
-      drag = null; ctx.store.endTransient();
+      drag = null; ctx.store.abortTransient();
       return true;
     },
   };

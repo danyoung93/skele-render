@@ -123,3 +123,22 @@ describe('reference and part assignment', () => {
     expect(partForPoint([10, 1000], 'torso')).toBe('torso');
   });
 });
+
+describe('degenerate shapes (review #1)', () => {
+  const line = (): Omit<PathShape, 'id'> => ({
+    kind: 'path', closed: false, rotation: 0, style: DEFAULT_STYLE,
+    nodes: [{ p: [420, 300], in: [420, 300], out: [420, 300] }, { p: [600, 300], in: [600, 300], out: [600, 300] }],
+  });
+  const finite = (s: unknown) => JSON.stringify(s).match(/null|NaN|Infinity/) === null;
+  it('Shift-resizing a zero-height path keeps every number finite', () => {
+    const { doc, id } = addShape(emptyDoc('x'), 'head', line());
+    const after = findShape(resizeShape(doc, id, 'se', [700, 340], true), id)!.shape as PathShape;
+    expect(finite(after.nodes)).toBe(true);
+    expect(after.nodes[1].p[0]).toBeCloseTo(700);
+  });
+  it('Shift-resizing a zero-width selection box keeps every number finite', async () => {
+    const { dragBox } = await import('../../../src/editor/selection');
+    const b = dragBox({ x0: 10, y0: 0, x1: 10, y1: 100 }, 'se', [40, 150], true);
+    expect(Object.values(b).every(Number.isFinite)).toBe(true);
+  });
+});

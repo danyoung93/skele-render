@@ -81,8 +81,10 @@ export function resizeShape(doc: EditorDoc, id: string, handle: Handle, point: V
     if (handle.includes('w')) nb.x0 = Math.min(local[0], b.x1 - MIN_SIZE);
     if (handle.includes('s')) nb.y1 = Math.max(local[1], b.y0 + MIN_SIZE);
     if (handle.includes('n')) nb.y0 = Math.min(local[1], b.y1 - MIN_SIZE);
-    if (keepRatio && handle.length === 2) {
-      const w = b.x1 - b.x0, h = b.y1 - b.y0;
+    const w0 = b.x1 - b.x0, h0 = b.y1 - b.y0;
+    // Keeping proportions is meaningless for a zero-width or zero-height shape (k would be infinite).
+    if (keepRatio && handle.length === 2 && w0 > 0 && h0 > 0) {
+      const w = w0, h = h0;
       const k = Math.max((nb.x1 - nb.x0) / w, (nb.y1 - nb.y0) / h);
       if (handle.includes('e')) nb.x1 = nb.x0 + w * k; else nb.x0 = nb.x1 - w * k;
       if (handle.includes('s')) nb.y1 = nb.y0 + h * k; else nb.y0 = nb.y1 - h * k;

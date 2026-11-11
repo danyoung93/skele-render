@@ -75,7 +75,7 @@ export function createSelectTool(): Tool {
     cancel(ctx) {
       if (!drag) return false;
       drag = null;
-      ctx.store.endTransient();
+      ctx.store.abortTransient();
       return true;
     },
   };
