@@ -490,3 +490,37 @@ test.describe('review fixes', () => {
   });
 });
 
+
+test.describe('duplicate', () => {
+  test('Ctrl+D duplicates the selection, offset and selected; one undo removes it', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="rect"]').click();
+    await dragSheet(page, [450, 100], [550, 200]);
+    await page.keyboard.press('Control+d');
+    await expect(count(page, 'torso')).toHaveText('2');
+    const shapes = page.locator('[data-part="torso"]');
+    await expect(shapes.nth(1)).toHaveAttribute('x', '460');
+    await expect(page.locator('[data-id="style-title"]')).toHaveText('Selected (1)');
+    await page.keyboard.press('Control+d');
+    await expect(shapes.nth(2)).toHaveAttribute('x', '470');
+    await page.keyboard.press('Control+z');
+    await page.keyboard.press('Control+z');
+    await expect(count(page, 'torso')).toHaveText('1');
+  });
+
+  test('the Duplicate button copies a multi-selection across parts', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [200, 200]);
+    await dragSheet(page, [450, 100], [550, 200]);
+    await page.keyboard.press('v');
+    await page.mouse.click(...(await toClient(page, 150, 150)));
+    await page.keyboard.down('Shift');
+    await page.mouse.click(...(await toClient(page, 500, 150)));
+    await page.keyboard.up('Shift');
+    await page.locator('[data-id="duplicate"]').click();
+    await expect(count(page, 'head')).toHaveText('2');
+    await expect(count(page, 'torso')).toHaveText('2');
+    await expect(page.locator('[data-id="style-title"]')).toHaveText('Selected (2)');
+  });
+});

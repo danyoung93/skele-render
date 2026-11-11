@@ -142,3 +142,28 @@ describe('degenerate shapes (review #1)', () => {
     expect(Object.values(b).every(Number.isFinite)).toBe(true);
   });
 });
+
+import { duplicateShapes } from '../../../src/editor/commands';
+
+describe('duplicateShapes', () => {
+  it('copies each shape right after its original, offset, with new ids, rotation and style kept', () => {
+    let d = emptyDoc('x');
+    const a = addShape(d, 'head', rect({ rotation: 30 })); d = a.doc;
+    const b = addShape(d, 'head', rect({ x: 0 })); d = b.doc;
+    const c = addShape(d, 'torso', path()); d = c.doc;
+    const frozen = deepFreeze(d);
+    const r = duplicateShapes(frozen, [a.id, c.id], [10, 10]);
+    expect(r.ids).toHaveLength(2);
+    expect(r.ids.some((id) => [a.id, b.id, c.id].includes(id))).toBe(false);
+    expect(r.doc.parts.head.map((s) => s.id)).toEqual([a.id, r.ids[0], b.id]);
+    expect(r.doc.parts.torso.map((s) => s.id)).toEqual([c.id, r.ids[1]]);
+    const copy = findShape(r.doc, r.ids[0])!.shape as RectShape;
+    expect(copy).toMatchObject({ x: 110, y: 110, w: 100, h: 50, rotation: 30, style: DEFAULT_STYLE });
+    expect((findShape(r.doc, r.ids[1])!.shape as PathShape).nodes[1].p).toEqual([110, 10]);
+    expect(frozen.parts.head).toHaveLength(2);
+  });
+  it('ignores unknown ids', () => {
+    const d = emptyDoc('x');
+    expect(duplicateShapes(d, ['nope'], [10, 10])).toEqual({ doc: d, ids: [] });
+  });
+});

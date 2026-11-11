@@ -17,6 +17,7 @@ import { REF_SIZE } from '../sheet/layout';
 export interface PanelHooks {
   extraSections?: string;
   useTool(id: ToolId): void;
+  duplicate(): void;
   newSheet(): void;
   editCurrent(): void;
   downloadSvg(): void;
@@ -51,6 +52,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
       <label>Corner <input type="number" min="0" step="1" data-id="radius"/></label>
       <label>Rotation <input type="number" step="1" data-id="rotation"/>°</label></div>
     <div class="row"><button class="btn" data-id="forward">Bring forward</button><button class="btn" data-id="backward">Send backward</button>
+      <button class="btn" data-id="duplicate" title="Duplicate (Ctrl/Cmd+D)">Duplicate</button>
       <button class="btn danger" data-id="delete">Delete</button></div>
   </section>
   <section class="ps"><h2>Reference image</h2>
@@ -114,6 +116,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     store.commit({ ...store.doc(), name });
   });
 
+  $('duplicate').addEventListener('click', () => hooks.duplicate());
   $('new-sheet').addEventListener('click', () => hooks.newSheet());
   $('edit-current').addEventListener('click', () => hooks.editCurrent());
   $('download-svg').addEventListener('click', () => hooks.downloadSvg());
@@ -206,7 +209,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     setIfIdle(radius, s0 && s0.kind === 'rect' ? String(Math.round(s0.r * 100) / 100) : '');
     rotation.disabled = !sel.length;
     setIfIdle(rotation, s0 ? String(Math.round(s0.rotation * 100) / 100) : '');
-    for (const id of ['forward', 'backward', 'delete']) ($(id) as HTMLButtonElement).disabled = !sel.length;
+    for (const id of ['forward', 'backward', 'duplicate', 'delete']) ($(id) as HTMLButtonElement).disabled = !sel.length;
     const r = doc.reference, hasRef = !!st.reference && r.hasImage;
     setIfIdle(refOpacity, String(Math.round(r.opacity * 100)));
     refOpacity.disabled = !hasRef;

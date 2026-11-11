@@ -60,6 +60,25 @@ function mapGeometry(s: EditorShape, sx: number, tx: number, sy: number, ty: num
 
 const translateShape = (s: EditorShape, dx: number, dy: number) => mapGeometry(s, 1, dx, 1, dy);
 
+/** Copies shapes (each right above its original, in the same part), offset by `offset`. */
+export function duplicateShapes(doc: EditorDoc, ids: string[], offset: Vec2): { doc: EditorDoc; ids: string[] } {
+  const set = new Set(ids);
+  let nextId = doc.nextId;
+  const copies = new Map<string, string>();
+  const parts = { ...doc.parts };
+  for (const p of PART_IDS) {
+    if (!doc.parts[p].some((s) => set.has(s.id))) continue;
+    parts[p] = doc.parts[p].flatMap((s) => {
+      if (!set.has(s.id)) return [s];
+      const copy = { ...translateShape(s, offset[0], offset[1]), id: `s${nextId++}` };
+      copies.set(s.id, copy.id);
+      return [s, copy];
+    });
+  }
+  if (!copies.size) return { doc, ids: [] };
+  return { doc: { ...doc, nextId, parts }, ids: ids.filter((id) => copies.has(id)).map((id) => copies.get(id)!) };
+}
+
 export function moveShapes(doc: EditorDoc, ids: string[], dx: number, dy: number): EditorDoc {
   return mapShapes(doc, new Set(ids), (s) => translateShape(s, dx, dy));
 }

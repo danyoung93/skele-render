@@ -1,6 +1,7 @@
 /** Edit sheet mode: toolbar, canvas, panel, keyboard (sheet editor spec §2). */
 import type { SheetBus } from '../ui/sheet-bus';
 import { download } from '../ui/util';
+import { duplicateShapes } from './commands';
 import { importSheet } from './import';
 import { emptyDoc, hasShapes } from './model';
 import { loadSaved, persistenceAvailable, saveDoc, saveReference, stashPending } from './persist';
@@ -46,9 +47,17 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     <aside class="panel editor-panel" data-id="editor-panel"></aside>
   </div>`;
   const view = createCanvasView(el.querySelector('[data-id="canvas-host"]')!, store);
+  const DUPLICATE_OFFSET: [number, number] = [10, 10];
+  function duplicate() {
+    const { doc, ids } = duplicateShapes(store.doc(), store.get().selection, DUPLICATE_OFFSET);
+    if (!ids.length) return;
+    store.commit(doc);
+    store.select(ids);
+  }
   const confirmReplace = () => !store.get().dirty || window.confirm('Replace your current drawing? You can undo this with Ctrl+Z.');
   createPanel(el.querySelector('[data-id="editor-panel"]')!, store, bus, view, {
     useTool: (id) => useTool(id),
+    duplicate,
     newSheet() {
       if (!confirmReplace()) return;
       const doc = { ...emptyDoc(store.doc().name), reference: store.doc().reference };
@@ -97,6 +106,7 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
       return;
     }
     if (mod && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); store.redo(); return; }
+    if (mod && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); tool.cancel?.(view.ctx); duplicate(); return; }
     if (mod || e.altKey) return;
     if (tool.key?.(e, view.ctx)) { e.preventDefault(); return; }
     if (e.key === 'Escape') { if (!tool.cancel?.(view.ctx)) store.select([]); return; }
