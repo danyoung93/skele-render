@@ -16,8 +16,8 @@ existing offscreen canvas (`store.get().reference.pixels`).
 
 ## Global Constraints
 
-- Tolerance is ΔE CIE76, default 12. Smoothness is in image px, default 1.5.
-- Search limit: the part's box + 32 units. Minimum area: 16 px. Dilate 1 px.
+- Tolerance is ΔE CIE76, default 12. Smoothness is in image px, default 0.6.
+- Search limit: the part's box + 32 units. Minimum area: 16 px. Outline level 0.35 on the coverage field.
 - No new runtime dependencies.
 
 ## Review Focus

@@ -42,7 +42,7 @@ patch, filled with its colour. Gradients, textures and photos are out of scope.
     area is too small to trace."
 - **Panel:** a **Trace** section is shown while the tool is active:
   - **Tolerance:** `trace-tolerance`, ΔE 1–50, default 12.
-  - **Smoothness:** `trace-smoothness`, 0.5–6 image px, default 1.5.
+  - **Smoothness:** `trace-smoothness`, 0.25–4 image px, default 0.6.
 
 ## 3. Algorithm (`src/trace/`, pure functions on `{ width, height, data: Uint8ClampedArray }`)
 
@@ -55,10 +55,15 @@ patch, filled with its colour. Gradients, textures and photos are out of scope.
      rectangle (in image px). `hitLimit` means the region touches that
      rectangle's edge, where the edge isn't the image edge.
    - **Tidy-up:** fill holes (non-region pixels not reachable from the limit
-     border), then dilate by 1 px within the limit.
+     border).
+   - **Coverage field:** 1 for the region. Each antialiased edge pixel gets
+     its coverage, from where its colour lies between the region colour and
+     the most different neighbouring colour. Everything else is 0.
 2. **`contour.ts`: `outerContour(mask, w, h) → Vec2[]`**
-   - Blur the mask with a 3×3 box filter.
-   - Run marching squares at iso level 0.5 with linear interpolation.
+   - Run marching squares on the coverage field at level 0.35 with linear
+     interpolation. That puts the outline about 0.2 px outside the true edge,
+     so neighbouring traces overlap slightly instead of leaving hairline
+     gaps.
    - Return the longest closed loop (the outer boundary), clockwise on screen,
      in pixel-centre coordinates (pixel (i, j) has its centre at
      (i + 0.5, j + 0.5)).
@@ -82,7 +87,7 @@ patch, filled with its colour. Gradients, textures and photos are out of scope.
 
 | Image | Expectation |
 |---|---|
-| Circle, r = 40 | Max radial error < 0.75 px; ≤ 8 nodes |
+| Circle, r = 40 | Max radial error < 0.75 px; ≤ 10 nodes |
 | Rounded rect 100 × 60, r 12 | Max distance < 0.75 px; no corner nodes on the straight edges |
 | Square 80 × 80 | 4 corner nodes within 1 px of the true corners |
 | Concave L-shape | IoU ≥ 0.98 against the true shape |

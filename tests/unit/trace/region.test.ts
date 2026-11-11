@@ -34,19 +34,26 @@ describe('growRegion', () => {
     const loose = growRegion(img, [10, 20], 12, all(80, 40));
     expect(at(loose.mask, 80, 70, 20)).toBe(1);
   });
-  it('fills holes and grows the edge by one pixel', () => {
+  it('fills holes and gives antialiased edge pixels partial coverage', () => {
     const img = paint(100, 100, WHITE, [{ inside: circle(50, 50, 30), colour: RED }, { inside: circle(50, 50, 10), colour: WHITE }]);
     const r = growRegion(img, [50, 25], 12, all(100, 100));
     expect(at(r.mask, 100, 50, 50)).toBe(1);
-    // x = 19 is just outside the 30-px radius (its pixel centre is 30.5 from the centre): included by the 1-px grow.
-    expect(at(r.mask, 100, 19, 50)).toBe(1);
-    expect(at(r.mask, 100, 17, 50)).toBe(0);
+    expect(r.field[50 * 100 + 25]).toBe(1);
+    expect(r.field[50 * 100 + 17]).toBe(0);
+    // On the left edge, find pixels the circle half-covers: their field value matches the true coverage.
+    let checked = 0;
+    for (let y = 30; y < 70; y++) {
+      const e = 50 - Math.sqrt(900 - (y + 0.5 - 50) ** 2), x = Math.floor(e), cover = x + 1 - e;
+      if (cover < 0.3 || cover > 0.7) continue;
+      expect(Math.abs(r.field[y * 100 + x] - cover), `row ${y}`).toBeLessThan(0.15);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(3);
   });
   it('does not leak through a diagonal one-pixel gap', () => {
     // Two squares touching only at one corner.
     const img = paint(40, 40, WHITE, [{ inside: rect(0, 0, 20, 20), colour: RED }, { inside: rect(20, 20, 40, 40), colour: RED }]);
     const r = growRegion(img, [5, 5], 12, all(40, 40));
-    // The 1-px grow may touch the other square's corner pixel, but must not spread into it.
     expect(at(r.mask, 40, 35, 35)).toBe(0);
   });
   it('reports hitting the limit, but not the image border', () => {
