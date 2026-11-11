@@ -37,3 +37,4 @@
   .tools { flex-direction: row; flex-wrap: wrap; }
   .editor-root { height: auto; }
 }
+.canvas .marquee { fill: color-mix(in srgb, #1e88e5 10%, transparent); stroke: #1e88e5; }

@@ -622,3 +622,51 @@ test.describe('flip', () => {
     await expect(page.locator('[data-id="flip-v"]')).toBeDisabled();
   });
 });
+
+test.describe('area select', () => {
+  async function threeShapes(page: import('@playwright/test').Page) {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [180, 180]);
+    await dragSheet(page, [450, 100], [550, 200]);
+    await dragSheet(page, [450, 300], [550, 400]);
+    await page.keyboard.press('v');
+    await page.keyboard.press('Escape');
+  }
+  const title = (page: import('@playwright/test').Page) => page.locator('[data-id="style-title"]');
+
+  test('dragging on empty canvas selects every shape the box touches', async ({ page }) => {
+    await threeShapes(page);
+    await dragSheet(page, [60, 60], [470, 150]);
+    await expect(title(page)).toHaveText('Selected (2)');
+  });
+
+  test('Shift+drag adds to the selection; a tiny drag clears it', async ({ page }) => {
+    await threeShapes(page);
+    await dragSheet(page, [60, 60], [470, 150]);
+    await page.keyboard.down('Shift');
+    await dragSheet(page, [600, 380], [520, 320]);
+    await page.keyboard.up('Shift');
+    await expect(title(page)).toHaveText('Selected (3)');
+    const p = await toClient(page, 700, 700);
+    await drag(page, p, [p[0] + 1, p[1] + 1]);
+    await expect(title(page)).toHaveText('New shape style');
+  });
+
+  test('shapes in hidden parts are not picked up', async ({ page }) => {
+    await threeShapes(page);
+    await page.locator('[data-part-visible="head"]').uncheck();
+    await page.locator('[data-id="canvas"]').focus();
+    await dragSheet(page, [60, 60], [470, 150]);
+    await expect(title(page)).toHaveText('Selected (1)');
+  });
+
+  test('the selection box is drawn while dragging and removed after', async ({ page }) => {
+    await threeShapes(page);
+    const a = await toClient(page, 60, 60), b = await toClient(page, 300, 300);
+    await page.mouse.move(...a); await page.mouse.down(); await page.mouse.move(...b, { steps: 4 });
+    await expect(page.locator('[data-id="marquee"]')).toBeVisible();
+    await page.mouse.up();
+    await expect(page.locator('[data-id="marquee"]')).toHaveCount(0);
+  });
+});

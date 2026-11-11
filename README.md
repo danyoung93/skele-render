@@ -31,6 +31,7 @@ npm run dev        # open http://localhost:5173
      both the fields and the handles scale evenly.
    - **Duplicate** (Ctrl/Cmd+D, or the panel button) copies the selection 10 units down and right.
    - **Flip horizontally / vertically** mirror the selection (a group flips around its own centre).
+   - Drag on empty canvas with **Select** to select every shape the box touches (Shift+drag adds to the selection).
    - **Edit points (A)** drags points and curve handles; double-click an edge to add a point; Delete removes one.
 4. The **Live preview** animates as you draw, and **Animate** shows the same sheet. **Download SVG** saves it.
 
