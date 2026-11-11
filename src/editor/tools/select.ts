@@ -45,10 +45,11 @@ export function createSelectTool(): Tool {
       let next: EditorDoc;
       if (drag.kind === 'move') next = moveShapes(drag.base, drag.ids, p[0] - drag.start[0], p[1] - drag.start[1]);
       else if (drag.kind === 'resize') {
-        if (drag.ids.length === 1) next = resizeShape(drag.base, drag.ids[0], drag.handle, p, e.shiftKey);
+        const keep = e.shiftKey || ctx.store.get().keepRatio;
+        if (drag.ids.length === 1) next = resizeShape(drag.base, drag.ids[0], drag.handle, p, keep);
         else {
           const from = selectionFrame(drag.base, drag.ids)!.box;
-          next = resizeSelection(drag.base, drag.ids, from, dragBox(from, drag.handle, p, e.shiftKey));
+          next = resizeSelection(drag.base, drag.ids, from, dragBox(from, drag.handle, p, keep));
         }
       } else {
         let delta = angleOf(p, drag.centre) - angleOf(drag.start, drag.centre);

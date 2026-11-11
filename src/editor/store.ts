@@ -35,6 +35,8 @@ export interface EditorState {
   message: { kind: 'info' | 'error'; text: string } | null;
   /** Notes from the last 'Edit current sheet' import (lossy conversions). */
   importNotes: { part: PartId; message: string }[];
+  /** Keep proportions: W/H edits and handle drags scale both axes together. */
+  keepRatio: boolean;
 }
 
 export type Store = ReturnType<typeof createStore>;
@@ -51,7 +53,7 @@ export function finiteDoc(d: EditorDoc): boolean {
 export function createStore(bus: SheetBus, initial: EditorDoc) {
   let state: EditorState = {
     history: createHistory(initial), selection: [], active: 'head', tool: 'select', style: DEFAULT_STYLE,
-    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null, importNotes: [],
+    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null, importNotes: [], keepRatio: false,
   };
   const listeners = new Set<() => void>();
   const docListeners = new Set<(doc: EditorDoc) => void>();

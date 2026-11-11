@@ -1,7 +1,8 @@
 /** Editing commands (sheet editor spec §4). Each returns a new document. */
 import { AREAS, PART_IDS, type PartId } from '../sheet/layout';
+import { keepFrame } from './path-edit';
 import {
-  bounds, centre, findShape, normAngle, rotatePoint, toWorld,
+  bounds, centre, findShape, normAngle, rotatePoint, tightBounds, toWorld,
   type Box, type EditorDoc, type EditorShape, type NewShape, type ReferenceState, type Vec2,
 } from './model';
 
@@ -107,6 +108,8 @@ export function resizeShape(doc: EditorDoc, id: string, handle: Handle, point: V
       const k = Math.max((nb.x1 - nb.x0) / w, (nb.y1 - nb.y0) / h);
       if (handle.includes('e')) nb.x1 = nb.x0 + w * k; else nb.x0 = nb.x1 - w * k;
       if (handle.includes('s')) nb.y1 = nb.y0 + h * k; else nb.y0 = nb.y1 - h * k;
+    } else if (keepRatio && handle.length === 1 && w0 > 0 && h0 > 0) {
+      keepRatioOnEdge(b, nb, handle);
     }
     let out = boxMap(s, b, nb);
     if (s.rotation) {
@@ -117,6 +120,35 @@ export function resizeShape(doc: EditorDoc, id: string, handle: Handle, point: V
     }
     return out;
   });
+}
+
+/** Shift on an edge handle: scale the other axis by the same factor, about its centre. */
+export function keepRatioOnEdge(b: Box, nb: Box, handle: Handle): void {
+  if (handle === 'e' || handle === 'w') {
+    const k = (nb.x1 - nb.x0) / (b.x1 - b.x0), cy = (b.y0 + b.y1) / 2, h = (b.y1 - b.y0) * k;
+    nb.y0 = cy - h / 2; nb.y1 = cy + h / 2;
+  } else {
+    const k = (nb.y1 - nb.y0) / (b.y1 - b.y0), cx = (b.x0 + b.x1) / 2, w = (b.x1 - b.x0) * k;
+    nb.x0 = cx - w / 2; nb.x1 = cx + w / 2;
+  }
+}
+
+/**
+ * Sets the visible width and/or height (sheet editor W/H fields), keeping the top-left of the outline
+ * fixed on screen. A multi-selection is resized as one box, and only when nothing in it is rotated.
+ */
+export function setSize(doc: EditorDoc, ids: string[], size: { w?: number; h?: number }, keepRatio: boolean): EditorDoc {
+  const shapes = ids.map((id) => findShape(doc, id)?.shape).filter((s): s is EditorShape => !!s);
+  if (!shapes.length) return doc;
+  if (shapes.length > 1 && shapes.some((s) => s.rotation !== 0)) return doc;
+  const tb = shapes.map(tightBounds).reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }));
+  const w = tb.x1 - tb.x0, h = tb.y1 - tb.y0;
+  const MIN = 1;
+  let fx = size.w !== undefined && w > 0 ? Math.max(MIN, size.w) / w : 1;
+  let fy = size.h !== undefined && h > 0 ? Math.max(MIN, size.h) / h : 1;
+  if (keepRatio) { if (size.w !== undefined && w > 0) fy = fx; else if (size.h !== undefined && h > 0) fx = fy; }
+  const scale = (s: EditorShape) => mapGeometry(s, fx, tb.x0 - tb.x0 * fx, fy, tb.y0 - tb.y0 * fy);
+  return mapShapes(doc, new Set(ids), (s) => (s.rotation ? keepFrame(s, scale(s)) : scale(s)));
 }
 
 /** Resizes unrotated shapes from one selection box to another. */

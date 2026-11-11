@@ -167,3 +167,67 @@ describe('duplicateShapes', () => {
     expect(duplicateShapes(d, ['nope'], [10, 10])).toEqual({ doc: d, ids: [] });
   });
 });
+
+import { setSize } from '../../../src/editor/commands';
+import { tightBounds } from '../../../src/editor/model';
+
+describe('tightBounds', () => {
+  it('measures a curved path by its outline, not its handles', () => {
+    const p = { ...path(), id: 'p', closed: false, nodes: [{ p: [0, 0], in: [0, 0], out: [0, -50] }, { p: [100, 0], in: [100, -50], out: [100, 0] }] } as PathShape;
+    const b = tightBounds(p);
+    expect(b.y0).toBeCloseTo(-37.5, 3);
+    expect([b.x0, b.x1, b.y1]).toEqual([0, 100, 0]);
+  });
+  it('equals bounds for ellipses and rects', () => {
+    expect(tightBounds({ ...rect(), id: 'r' })).toEqual({ x0: 100, y0: 100, x1: 200, y1: 150 });
+  });
+});
+
+describe('setSize', () => {
+  it('sets width keeping the top-left corner on screen and the rotation, even when rotated', () => {
+    const { doc, id } = addShape(emptyDoc('x'), 'torso', rect({ rotation: 30 }));
+    const before = findShape(doc, id)!.shape;
+    const nw = toWorld(before, [100, 100]);
+    const after = findShape(setSize(doc, [id], { w: 200 }, false), id)!.shape as RectShape;
+    expect([after.w, after.h, after.rotation]).toEqual([200, 50, 30]);
+    close(toWorld(after, [after.x, after.y]), nw);
+  });
+  it('keeps proportions when asked', () => {
+    const { doc, id } = addShape(emptyDoc('x'), 'torso', rect());
+    expect(findShape(setSize(doc, [id], { h: 100 }, true), id)!.shape).toMatchObject({ w: 200, h: 100, x: 100, y: 100 });
+  });
+  it('scales a curved path so its outline gets the requested size', () => {
+    const p = { ...path(), closed: false, nodes: [{ p: [0, 0], in: [0, 0], out: [0, -50] }, { p: [100, 0], in: [100, -50], out: [100, 0] }] } as Omit<PathShape, 'id'>;
+    const { doc, id } = addShape(emptyDoc('x'), 'head', p);
+    const after = findShape(setSize(doc, [id], { h: 75 }, false), id)!.shape;
+    const b = tightBounds(after);
+    expect(b.y1 - b.y0).toBeCloseTo(75, 3);
+    expect(b.y0).toBeCloseTo(-37.5, 3);
+  });
+  it('resizes an unrotated multi-selection as one box, and leaves a rotated one alone', () => {
+    let d = emptyDoc('x');
+    const a = addShape(d, 'head', rect({ x: 0, y: 0, w: 50, h: 50 })); d = a.doc;
+    const b = addShape(d, 'head', rect({ x: 50, y: 0, w: 50, h: 50 })); d = b.doc;
+    const r = setSize(d, [a.id, b.id], { w: 200 }, false);
+    expect(findShape(r, b.id)!.shape).toMatchObject({ x: 100, w: 100, h: 50 });
+    const rotated = updateShape(d, a.id, { rotation: 10 });
+    expect(setSize(rotated, [a.id, b.id], { w: 200 }, false)).toBe(rotated);
+  });
+  it('a zero-height line keeps its height instead of producing NaN', () => {
+    const line = { ...path(), closed: false, nodes: [{ p: [0, 0], in: [0, 0], out: [0, 0] }, { p: [100, 0], in: [100, 0], out: [100, 0] }] } as Omit<PathShape, 'id'>;
+    const { doc, id } = addShape(emptyDoc('x'), 'head', line);
+    const after = findShape(setSize(doc, [id], { w: 50 }, true), id)!.shape as PathShape;
+    expect(after.nodes[1].p).toEqual([50, 0]);
+  });
+});
+
+describe('Shift on edge handles keeps proportions', () => {
+  it('resizeShape: dragging the east edge scales height about the vertical centre', () => {
+    const { doc, id } = addShape(emptyDoc('x'), 'torso', rect());
+    expect(findShape(resizeShape(doc, id, 'e', [300, 125], true), id)!.shape).toMatchObject({ x: 100, w: 200, h: 100, y: 75 });
+  });
+  it('dragBox: dragging the south edge scales width about the horizontal centre', async () => {
+    const { dragBox } = await import('../../../src/editor/selection');
+    expect(dragBox({ x0: 0, y0: 0, x1: 100, y1: 50 }, 's', [50, 100], true)).toEqual({ x0: -50, y0: 0, x1: 150, y1: 100 });
+  });
+});

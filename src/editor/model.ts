@@ -89,3 +89,38 @@ export function findShape(doc: EditorDoc, id: string): { part: PartId; index: nu
 
 /** True when any part has at least one shape. */
 export const hasShapes = (doc: EditorDoc) => PART_IDS.some((p) => doc.parts[p].length > 0);
+
+/** Extremes of one cubic coordinate on [0, 1] (the curve itself, not its control points). */
+function cubicRange(p0: number, p1: number, p2: number, p3: number): [number, number] {
+  let lo = Math.min(p0, p3), hi = Math.max(p0, p3);
+  // Derivative: a t² + b t + c
+  const a = -p0 + 3 * p1 - 3 * p2 + p3, b = 2 * (p0 - 2 * p1 + p2), c = p1 - p0;
+  const ts: number[] = [];
+  if (Math.abs(a) < 1e-12) { if (Math.abs(b) > 1e-12) ts.push(-c / b); }
+  else {
+    const disc = b * b - 4 * a * c;
+    if (disc >= 0) { const r = Math.sqrt(disc); ts.push((-b + r) / (2 * a), (-b - r) / (2 * a)); }
+  }
+  for (const t of ts) {
+    if (t <= 0 || t >= 1) continue;
+    const u = 1 - t, v = u ** 3 * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t ** 3 * p3;
+    lo = Math.min(lo, v); hi = Math.max(hi, v);
+  }
+  return [lo, hi];
+}
+
+/** Unrotated bounding box of the visible outline (paths: the curve, not its handles). */
+export function tightBounds(s: EditorShape): Box {
+  if (s.kind !== 'path') return bounds(s);
+  const ns = s.nodes;
+  if (ns.length === 1) return { x0: ns[0].p[0], y0: ns[0].p[1], x1: ns[0].p[0], y1: ns[0].p[1] };
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const segs = s.closed ? ns.length : ns.length - 1;
+  for (let i = 0; i < segs; i++) {
+    const a = ns[i], b = ns[(i + 1) % ns.length];
+    const [lx, hx] = cubicRange(a.p[0], a.out[0], b.in[0], b.p[0]);
+    const [ly, hy] = cubicRange(a.p[1], a.out[1], b.in[1], b.p[1]);
+    x0 = Math.min(x0, lx); x1 = Math.max(x1, hx); y0 = Math.min(y0, ly); y1 = Math.max(y1, hy);
+  }
+  return { x0, y0, x1, y1 };
+}

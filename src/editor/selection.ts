@@ -1,5 +1,5 @@
 /** Selection geometry shared by the view (drawing handles) and the select tool. */
-import type { Handle } from './commands';
+import { keepRatioOnEdge, type Handle } from './commands';
 import { bounds, findShape, orientedBox, toWorld, type Box, type EditorDoc, type EditorShape, type Vec2 } from './model';
 
 export interface SelectionFrame {
@@ -54,6 +54,8 @@ export function dragBox(b: Box, handle: Handle, p: Vec2, keepRatio: boolean): Bo
     const w = b.x1 - b.x0, h = b.y1 - b.y0, k = Math.max((nb.x1 - nb.x0) / w, (nb.y1 - nb.y0) / h);
     if (handle.includes('e')) nb.x1 = nb.x0 + w * k; else nb.x0 = nb.x1 - w * k;
     if (handle.includes('s')) nb.y1 = nb.y0 + h * k; else nb.y0 = nb.y1 - h * k;
+  } else if (keepRatio && handle.length === 1 && b.x1 > b.x0 && b.y1 > b.y0) {
+    keepRatioOnEdge(b, nb, handle);
   }
   return nb;
 }

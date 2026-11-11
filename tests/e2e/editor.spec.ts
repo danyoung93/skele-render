@@ -524,3 +524,71 @@ test.describe('duplicate', () => {
     await expect(page.locator('[data-id="style-title"]')).toHaveText('Selected (2)');
   });
 });
+
+test.describe('size fields and keep proportions', () => {
+  async function rectSelected(page: import('@playwright/test').Page) {
+    await openEditor(page);
+    await page.locator('[data-tool="rect"]').click();
+    await dragSheet(page, [450, 100], [550, 150]);
+    await page.keyboard.press('v');
+  }
+  const shape = (page: import('@playwright/test').Page) => page.locator('[data-part="torso"]').first();
+
+  test('typing W changes the width only; one undo restores it', async ({ page }) => {
+    await rectSelected(page);
+    await expect(page.locator('[data-id="width"]')).toHaveValue('100');
+    await expect(page.locator('[data-id="height"]')).toHaveValue('50');
+    await page.locator('[data-id="width"]').fill('200');
+    await page.locator('[data-id="width"]').press('Enter');
+    await expect(shape(page)).toHaveAttribute('width', '200');
+    await expect(shape(page)).toHaveAttribute('height', '50');
+    await page.locator('[data-id="canvas"]').focus();
+    await page.keyboard.press('Control+z');
+    await expect(shape(page)).toHaveAttribute('width', '100');
+  });
+
+  test('with Keep proportions, typing W also scales H, and handle drags keep proportions without Shift', async ({ page }) => {
+    await rectSelected(page);
+    await page.locator('[data-id="keep-ratio"]').check();
+    await page.locator('[data-id="width"]').fill('200');
+    await page.locator('[data-id="width"]').press('Enter');
+    await expect(shape(page)).toHaveAttribute('height', '100');
+    const se = (await page.locator('[data-handle="se"]').boundingBox())!;
+    await drag(page, [se.x + se.width / 2, se.y + se.height / 2], [se.x + 60, se.y + 4]);
+    const w = Number(await shape(page).getAttribute('width')), h = Number(await shape(page).getAttribute('height'));
+    expect(w / h).toBeCloseTo(2, 2);
+  });
+
+  test('Shift on an edge handle keeps proportions', async ({ page }) => {
+    await rectSelected(page);
+    const e = (await page.locator('[data-handle="e"]').boundingBox())!;
+    await page.keyboard.down('Shift');
+    await drag(page, [e.x + e.width / 2, e.y + e.height / 2], [e.x + 80, e.y + e.height / 2]);
+    await page.keyboard.up('Shift');
+    const w = Number(await shape(page).getAttribute('width')), h = Number(await shape(page).getAttribute('height'));
+    expect(w / h).toBeCloseTo(2, 2);
+    expect(w).toBeGreaterThan(100);
+  });
+
+  test('W/H keep a rotated shape rotated; they are disabled with no selection or a rotated multi-selection', async ({ page }) => {
+    await rectSelected(page);
+    await page.locator('[data-id="rotation"]').fill('30');
+    await page.locator('[data-id="rotation"]').press('Enter');
+    await page.locator('[data-id="height"]').fill('80');
+    await page.locator('[data-id="height"]').press('Enter');
+    await expect(shape(page)).toHaveAttribute('height', '80');
+    await expect(page.locator('[data-id="rotation"]')).toHaveValue('30');
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [450, 300], [550, 350]);
+    await page.keyboard.press('v');
+    const r = (await shape(page).boundingBox())!;
+    await page.keyboard.down('Shift');
+    await page.mouse.click(r.x + r.width / 2, r.y + r.height / 2);
+    await page.keyboard.up('Shift');
+    await expect(page.locator('[data-id="style-title"]')).toHaveText('Selected (2)');
+    await expect(page.locator('[data-id="width"]')).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-id="width"]')).toBeDisabled();
+    await expect(page.locator('[data-id="width"]')).toHaveValue('');
+  });
+});

@@ -5,9 +5,9 @@ import { buildLottie } from '../lottie/build';
 import { AREAS, PART_IDS } from '../sheet/layout';
 import type { SheetBus } from '../ui/sheet-bus';
 import { esc, warningsHtml } from '../ui/util';
-import { reorder, updateShape } from './commands';
+import { reorder, setSize, updateShape } from './commands';
 import { applyStyle as applyStyleTo } from './style-actions';
-import { findShape, normAngle, type EditorShape, type Paint, type Style } from './model';
+import { findShape, normAngle, tightBounds, type EditorShape, type Paint, type Style } from './model';
 import type { Store } from './store';
 import type { CanvasView } from './view';
 import type { ToolId } from './tools/types';
@@ -51,6 +51,9 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     <div class="row"><label>Width <input type="number" min="0" step="0.5" data-id="stroke-width"/></label>
       <label>Corner <input type="number" min="0" step="1" data-id="radius"/></label>
       <label>Rotation <input type="number" step="1" data-id="rotation"/>°</label></div>
+    <div class="row"><label>W <input type="number" min="1" step="1" data-id="width"/></label>
+      <label>H <input type="number" min="1" step="1" data-id="height"/></label>
+      <label title="Keep proportions when resizing (Shift does the same on the handles)"><input type="checkbox" data-id="keep-ratio"/> Keep proportions</label></div>
     <div class="row"><button class="btn" data-id="forward">Bring forward</button><button class="btn" data-id="backward">Send backward</button>
       <button class="btn" data-id="duplicate" title="Duplicate (Ctrl/Cmd+D)">Duplicate</button>
       <button class="btn danger" data-id="delete">Delete</button></div>
@@ -102,6 +105,15 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     for (const s of selected()) if (s.kind === 'rect') doc = updateShape(doc, s.id, { r: Math.max(0, Number(radius.value) || 0) });
     store.commit(doc);
   });
+  const widthIn = $<HTMLInputElement>('width'), heightIn = $<HTMLInputElement>('height'), keepRatio = $<HTMLInputElement>('keep-ratio');
+  const sizeChange = (which: 'w' | 'h', el: HTMLInputElement) => {
+    const v = Number(el.value);
+    if (!Number.isFinite(v) || v <= 0) { refresh(); return; }
+    store.commit(setSize(store.doc(), store.get().selection, { [which]: v }, store.get().keepRatio));
+  };
+  widthIn.addEventListener('change', () => sizeChange('w', widthIn));
+  heightIn.addEventListener('change', () => sizeChange('h', heightIn));
+  keepRatio.addEventListener('change', () => store.set({ keepRatio: keepRatio.checked }));
   rotation.addEventListener('change', () => {
     let doc = store.doc();
     for (const s of selected()) doc = updateShape(doc, s.id, { rotation: normAngle(Number(rotation.value) || 0) });
@@ -209,6 +221,14 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     setIfIdle(radius, s0 && s0.kind === 'rect' ? String(Math.round(s0.r * 100) / 100) : '');
     rotation.disabled = !sel.length;
     setIfIdle(rotation, s0 ? String(Math.round(s0.rotation * 100) / 100) : '');
+    // W/H: the outline's size (one shape, or an unrotated multi-selection).
+    const sizable = sel.length === 1 || (sel.length > 1 && sel.every((x) => x.rotation === 0));
+    const box = sizable ? sel.map(tightBounds).reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) })) : null;
+    const r1 = (n: number) => String(Math.round(n * 10) / 10);
+    widthIn.disabled = heightIn.disabled = !box;
+    setIfIdle(widthIn, box ? r1(box.x1 - box.x0) : '');
+    setIfIdle(heightIn, box ? r1(box.y1 - box.y0) : '');
+    setIfIdle(keepRatio, String(st.keepRatio), 'checked');
     for (const id of ['forward', 'backward', 'duplicate', 'delete']) ($(id) as HTMLButtonElement).disabled = !sel.length;
     const r = doc.reference, hasRef = !!st.reference && r.hasImage;
     setIfIdle(refOpacity, String(Math.round(r.opacity * 100)));

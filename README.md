@@ -26,7 +26,10 @@ npm run dev        # open http://localhost:5173
 2. Tick **Move reference**: drag to move the design, and scroll to scale it, so the part you want sits in its box. **Lock** it when it's in place.
 3. Trace with **Ellipse (E)**, **Rectangle (R)** and **Pen (P)**. A shape goes into the part whose box you start drawing in.
    - **Eyedropper (I)** picks a fill colour from the design; Shift-click picks a stroke colour.
-   - **Select (V)** moves, resizes and rotates shapes (hold Shift to snap rotation to 15°).
+   - **Select (V)** moves, resizes and rotates shapes. Hold Shift to snap rotation to 15°, or to keep proportions
+     on any resize handle. The panel's **W** and **H** fields set an exact size, and **Keep proportions** makes
+     both the fields and the handles scale evenly.
+   - **Duplicate** (Ctrl/Cmd+D, or the panel button) copies the selection 10 units down and right.
    - **Edit points (A)** drags points and curve handles; double-click an edge to add a point; Delete removes one.
 4. The **Live preview** animates as you draw, and **Animate** shows the same sheet. **Download SVG** saves it.
 
