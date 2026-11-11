@@ -36,7 +36,7 @@ export function mountAnimate(root: HTMLElement, bus: SheetBus): { show(): void; 
           ${PART_IDS.map((id) => { const a = AREAS[id]; return `<rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}"><title>${id}</title></rect>`; }).join('')}
         </svg>
       </div>
-      <p class="sheet-name" data-id="name"></p>
+      <p class="sheet-name"><span data-id="name"></span> · <span data-id="rig-name"></span></p>
       <div data-id="error" class="error" role="alert" hidden></div>
       <div data-id="warnings" class="warnings"></div>
     </aside>
@@ -66,7 +66,7 @@ export function mountAnimate(root: HTMLElement, bus: SheetBus): { show(): void; 
     try {
       player = lottie.loadAnimation({
         container: stage, renderer: 'svg', loop: true, autoplay: false,
-        animationData: buildLottie(sheet, anim, { debug }),
+        animationData: buildLottie(sheet, anim, { debug, rig: bus.getRig() }),
       });
       player.addEventListener('enterFrame', () => updateFrame());
       scrub.max = String(anim.frames - 1);
@@ -90,6 +90,7 @@ export function mountAnimate(root: HTMLElement, bus: SheetBus): { show(): void; 
     thumbUrl = URL.createObjectURL(new Blob([sheet.svgText], { type: 'image/svg+xml' }));
     $<HTMLImageElement>('thumb').src = thumbUrl;
     $('name').textContent = `Sheet: ${sheet.name}`;
+    $('rig-name').textContent = `Rig: ${bus.getRig().name}`;
     $('warnings').innerHTML = warningsHtml(sheet.warnings);
   }
 
@@ -107,6 +108,7 @@ export function mountAnimate(root: HTMLElement, bus: SheetBus): { show(): void; 
     bus.set(next, 'animate');
   }
 
+  bus.subscribeRig(() => { renderPanel(); render(true); });
   bus.subscribe((s) => {
     sheet = s;
     renderPanel();
@@ -128,12 +130,13 @@ export function mountAnimate(root: HTMLElement, bus: SheetBus): { show(): void; 
     e.preventDefault(); dragDepth = 0; drop.hidden = true;
     if (!visible) return;
     const f = e.dataTransfer?.files?.[0];
-    if (f) void loadFile(f);
+    // Rig files (.json) are handled by the app shell in every mode.
+    if (f && !/\.json$/i.test(f.name)) void loadFile(f);
   });
 
   $('template').addEventListener('click', () => download(TEMPLATE_FILE, templateSvg(), 'image/svg+xml'));
   $('export').addEventListener('click', () => {
-    const doc = buildLottie(sheet, anim, { debug: false });
+    const doc = buildLottie(sheet, anim, { debug: false, rig: bus.getRig() });
     download(`${sheet.name}-${anim.id}.json`, JSON.stringify(doc), 'application/json');
   });
   $('anims').addEventListener('click', (e) => {

@@ -62,3 +62,7 @@ input[type="range"] { width: 160px; accent-color: var(--accent); }
 .modebar h1 { font-size: 16px; margin: 0 8px 0 0; }
 [hidden] { display: none !important; }
 .toolbar { top: 0; }
+.app-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 16px 0; padding: 8px 12px;
+  background: var(--warn-bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+.app-banner.error { background: var(--danger-bg); color: var(--danger); }
+.placeholder { padding: 16px; color: var(--muted); }

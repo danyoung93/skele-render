@@ -201,7 +201,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     player?.destroy();
     preview.innerHTML = '';
     const anim = ANIMATIONS.find((a) => a.id === previewAnim.value) ?? ANIMATIONS[0];
-    player = lottie.loadAnimation({ container: preview, renderer: 'svg', loop: true, autoplay: true, animationData: buildLottie(bus.get(), anim, { debug: false }) });
+    player = lottie.loadAnimation({ container: preview, renderer: 'svg', loop: true, autoplay: true, animationData: buildLottie(bus.get(), anim, { debug: false, rig: bus.getRig() }) });
     renderWarnings();
   }
   function renderWarnings() {
@@ -214,6 +214,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   store.subscribe(() => { if (store.get().importNotes !== lastNotes) { lastNotes = store.get().importNotes; renderWarnings(); } });
   previewAnim.addEventListener('change', renderPreview);
   bus.subscribe(() => { if (!root.closest('[hidden]')) renderPreview(); });
+  bus.subscribeRig(() => { if (!root.closest('[hidden]')) renderPreview(); });
 
   const setIfIdle = (el: HTMLInputElement, v: string, prop: 'value' | 'checked' = 'value') => {
     // Don't overwrite a field the user is typing in; checkboxes always reflect the state.

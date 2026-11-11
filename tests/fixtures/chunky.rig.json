@@ -1,0 +1,10 @@
+{
+  "format": "character-rig/rig",
+  "version": 1,
+  "name": "chunky",
+  "joints": {
+    "root": [250, 450], "neck": [252, 220], "brows": [250, 110], "eyes": [248, 140], "mouth": [252, 190],
+    "shoulder_L": [170, 255], "elbow_L": [140, 320], "wrist_L": [150, 380],
+    "shoulder_R": [335, 250], "elbow_R": [370, 300], "wrist_R": [345, 370]
+  }
+}
