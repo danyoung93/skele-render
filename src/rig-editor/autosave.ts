@@ -23,7 +23,7 @@ function validatePairings(x: unknown): Record<string, Rig> | null {
   return out;
 }
 
-export async function startRigAutosave(store: RigStore, bus: SheetBus, banner: AppBanner) {
+export async function startRigAutosave(store: RigStore, bus: SheetBus, banner: AppBanner, onOff: () => void) {
   let pairings: Record<string, Rig> = {};
   const on = await persistenceAvailable();
   if (on) {
@@ -38,12 +38,17 @@ export async function startRigAutosave(store: RigStore, bus: SheetBus, banner: A
 
   // Remembered pairs: offer the remembered rig when a sheet is loaded from a file.
   const remember = () => { pairings = { ...pairings, [bus.get().name]: bus.getRig() }; schedule('pairings'); };
+  let offerFor: string | null = null;
   bus.subscribe((sheet, origin) => {
+    if (offerFor !== null && sheet.name !== offerFor) { banner.hide(); offerFor = null; }
     const known = pairings[sheet.name];
     if (origin === 'animate' && known && !rigsEqual(known, bus.getRig())) {
+      const name = sheet.name;
+      offerFor = name;
+      const stillCurrent = () => bus.get().name === name;
       banner.show(`This sheet was last used with the rig ${known.name}.`, 'info', [
-        { id: 'pair-use', label: 'Use it', run: () => bus.setRig(known, 'animate') },
-        { id: 'pair-keep', label: 'Keep current rig', run: () => remember() },
+        { id: 'pair-use', label: 'Use it', run: () => { offerFor = null; if (stillCurrent()) bus.setRig(known, 'animate'); } },
+        { id: 'pair-keep', label: 'Keep current rig', run: () => { offerFor = null; if (stillCurrent()) remember(); } },
       ]);
       return;
     }
@@ -51,7 +56,7 @@ export async function startRigAutosave(store: RigStore, bus: SheetBus, banner: A
   });
   bus.subscribeRig(() => remember());
 
-  if (!on) return;
+  if (!on) { onOff(); return; }
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const value = (key: string): unknown =>
     key === 'rig' ? bus.getRig()

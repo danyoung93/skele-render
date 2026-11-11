@@ -260,3 +260,64 @@ test.describe('rig autosave and remembered pairs', () => {
     await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: default');
   });
 });
+
+test.describe('final review fixes', () => {
+  async function fresh(page: Page) {
+    await page.goto('/');
+    await page.evaluate(() => { indexedDB.deleteDatabase('character-rig'); localStorage.clear(); });
+    await page.reload();
+  }
+  async function refPng(info: import('@playwright/test').TestInfo) {
+    const { PNG } = await import('pngjs');
+    const png = new PNG({ width: 40, height: 20 }); png.data.fill(150);
+    const path = info.outputPath('ref.png');
+    writeFileSync(path, PNG.sync.write(png));
+    return path;
+  }
+
+  test('after quick artwork edits, loading a reference still never replaces a loaded sheet (#1)', async ({ page }, info) => {
+    await fresh(page);
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await page.locator('[data-tool="ellipse"]').click();
+    const canvas = page.locator('[data-id="canvas"]');
+    const b = (await canvas.boundingBox())!;
+    await drag(page, [b.x + b.width * 0.2, b.y + b.height * 0.15], [b.x + b.width * 0.3, b.y + b.height * 0.25]);
+    await page.keyboard.press('v');
+    await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(400);
+    await page.getByRole('radio', { name: 'Animate' }).click();
+    await page.locator('[data-id="file"]').setInputFiles('examples/bearded-worker.svg');
+    await expect(page.locator('[data-id="name"]')).toHaveText('Sheet: bearded-worker');
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await page.locator('[data-id="ref-load"]').setInputFiles(await refPng(info));
+    await expect(page.locator('[data-id="reference"]')).toBeVisible();
+    await page.waitForTimeout(400);
+    await page.getByRole('radio', { name: 'Animate' }).click();
+    await expect(page.locator('[data-id="name"]')).toHaveText('Sheet: bearded-worker');
+  });
+
+  test('the pairing banner goes away when another sheet is loaded (#2)', async ({ page }) => {
+    await fresh(page);
+    const chunky = readFileSync('tests/fixtures/chunky.rig.json', 'utf8');
+    const dropRig = async (n: string, t: string) => {
+      const dt = await page.evaluateHandle(([n, t]) => { const d = new DataTransfer(); d.items.add(new File([t], n)); return d; }, [n, t]);
+      await page.dispatchEvent('body', 'drop', { dataTransfer: dt });
+    };
+    await page.locator('[data-id="file"]').setInputFiles('examples/bearded-worker.svg');
+    await dropRig('chunky.rig.json', chunky);
+    await page.locator('[data-id="file"]').setInputFiles('tests/fixtures/figma.svg');
+    await dropRig('other.rig.json', JSON.stringify({ ...JSON.parse(chunky), name: 'other' }));
+    await page.locator('[data-id="file"]').setInputFiles('examples/bearded-worker.svg');
+    await expect(page.locator('[data-id="app-banner"]')).toBeVisible();
+    await page.locator('[data-id="file"]').setInputFiles('tests/fixtures/figma.svg');
+    await expect(page.locator('[data-id="app-banner"]')).toBeHidden();
+    await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: other');
+  });
+
+  test('Edit rig says when autosave is off (#4)', async ({ page }) => {
+    await page.addInitScript(() => { IDBFactory.prototype.open = () => { throw new Error('blocked'); }; });
+    await page.goto('/');
+    await page.getByRole('radio', { name: 'Edit rig' }).click();
+    await expect(page.locator('[data-id="rig-banner"]')).toContainText('Autosave is off. Download your rig to keep it.');
+  });
+});

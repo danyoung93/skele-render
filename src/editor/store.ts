@@ -65,22 +65,23 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
   const notify = () => { for (const f of [...listeners]) f(); };
   const doc = () => state.history.present;
 
+  // Only artwork (parts) or the name is published to the shared sheet. Reference-image changes are
+  // editor-only: publishing them would replace a sheet loaded elsewhere with this (possibly blank) doc.
+  let published = { parts: initial.parts, name: initial.name };
   function publishPreview() {
     previewTimer = null;
     const d = doc();
+    // What was actually sent: later reference-only changes compare against this.
+    published = { parts: d.parts, name: d.name };
     try {
       bus.set(loadSheet(serialize(d), `${d.name || 'my-character'}.svg`), 'editor');
     } catch (e) {
       if (!(e instanceof SheetError)) throw e;
     }
   }
-  // Only artwork (parts) or the name is published to the shared sheet. Reference-image changes are
-  // editor-only: publishing them would replace a sheet loaded elsewhere with this (possibly blank) doc.
-  let published = { parts: initial.parts, name: initial.name };
   function docChanged() {
     const d = doc();
     if ((d.parts !== published.parts || d.name !== published.name) && !previewTimer) {
-      published = { parts: d.parts, name: d.name };
       previewTimer = setTimeout(publishPreview, PREVIEW_THROTTLE_MS);
     }
     for (const f of [...docListeners]) f(doc());

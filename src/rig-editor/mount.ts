@@ -20,6 +20,7 @@ export function mountRigEditor(el: HTMLElement, bus: SheetBus, editorStore: Edit
         <button class="btn" data-id="rig-zoom-fit">Fit</button>
         <button class="btn" data-id="rig-zoom-in" aria-label="Zoom in">+</button>
       </div>
+      <div class="banner" data-id="rig-banner" role="status" hidden></div>
     </div>
     <aside class="panel editor-panel" data-id="rig-panel"></aside>
   </div>`;
@@ -60,7 +61,11 @@ export function mountRigEditor(el: HTMLElement, bus: SheetBus, editorStore: Edit
     }
   });
 
-  void startRigAutosave(store, bus, banner);
+  const rigBanner = el.querySelector<HTMLElement>('[data-id="rig-banner"]')!;
+  void startRigAutosave(store, bus, banner, () => {
+    rigBanner.hidden = false;
+    rigBanner.textContent = 'Autosave is off. Download your rig to keep it.';
+  });
   return {
     store,
     show() { visible = true; el.hidden = false; view.render(); panel.renderPreview(); },

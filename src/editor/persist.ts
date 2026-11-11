@@ -75,6 +75,8 @@ export async function saveDoc(doc: EditorDoc): Promise<void> {
   tx.objectStore(STORE).put(JSON.parse(JSON.stringify(doc)), 'doc');
   tx.commit?.();
   await done;
+  // Saved for real: an older unload stash must not override this on the next load.
+  try { localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
 }
 
 /** Stored as bytes + type: Blob support in IndexedDB varies between engines. */
@@ -131,6 +133,7 @@ export async function saveKey(key: string, value: unknown): Promise<void> {
   tx.objectStore(STORE).put(JSON.parse(JSON.stringify(value)), key);
   tx.commit?.();
   await done;
+  try { localStorage.removeItem(stashName(key)); } catch { /* ignore */ }
 }
 /** Loads a record, preferring an unload stash (which is then written back and cleared). */
 export async function loadKey<T>(key: string, validate: (x: unknown) => T | null): Promise<T | null> {

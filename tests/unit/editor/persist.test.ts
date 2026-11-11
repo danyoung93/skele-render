@@ -109,3 +109,18 @@ describe('generic keys (rig autosave)', () => {
     expect(await loadKey('missing', validateRig)).toBeNull();
   });
 });
+
+describe('stash cleanup (review #3)', () => {
+  it('a successful save clears that record\'s stash, so an old stash cannot win later', async () => {
+    stashKey('rig', { ...DEFAULT_RIG, name: 'old' });
+    await saveKey('rig', { ...DEFAULT_RIG, name: 'new' });
+    expect(localStorage.getItem('character-rig:pending-rig')).toBeNull();
+    expect((await loadKey('rig', validateRig))!.name).toBe('new');
+  });
+  it('a successful document save clears the document stash', async () => {
+    stashPending({ ...fixtureDoc(), name: 'old' });
+    await saveDoc({ ...fixtureDoc(), name: 'new' });
+    expect(localStorage.getItem(PENDING_KEY)).toBeNull();
+    expect((await loadSaved()).doc!.name).toBe('new');
+  });
+});
