@@ -42,6 +42,25 @@ the sheet shown in Animate (for example one from Figma) into editable shapes. Gr
 Shortcuts: Ctrl/Cmd+Z undo, Shift+Ctrl/Cmd+Z or Ctrl+Y redo, Escape deselect, arrow keys nudge (Shift ×10),
 space+drag or middle-drag to pan, scroll to zoom.
 
+## Fit the skeleton to your character (Edit rig)
+
+The skeleton lives in its own **rig file** (`<name>.rig.json`), separate from the sprite sheet. A sheet plus a rig
+makes an animated character: one rig can drive several sheets, and a sheet can be tried on different rigs.
+
+1. Switch to **Edit rig**. Your character is drawn at rest with its bones on top. Your reference design (shared
+   with Edit sheet) shows faintly behind; use **Move reference** (drag, and scroll to scale) to line it up with
+   the character's head and body, then **Lock** it.
+2. Drag each joint onto the matching spot in the design: neck, shoulders, elbows, wrists, and the eye, brow
+   and mouth anchors (the diamonds). A joint drags everything attached below it; **Alt+drag** moves just that
+   joint. Arrow keys nudge the selected joint (Shift ×10).
+3. Arms re-angle to point from joint to joint. Artwork doesn't stretch, so trace each arm part to the design's
+   proportions in Edit sheet and the pieces will meet at the joints.
+4. **Download rig** saves the rig file; **Load rig** (or dropping a `.rig.json` anywhere) loads one.
+   **Reset to default** returns to the built-in skeleton.
+
+Animate and the exported Lottie always use the current rig. The rig is saved in the browser automatically, and
+the tool remembers which rig you last used with each sheet: loading that sheet again offers to switch back.
+
 ## Commands
 
 | Command | What it does |
