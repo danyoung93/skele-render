@@ -47,7 +47,8 @@ export const ATTACH: Record<PartId, { bone: BoneId; offset: Vec2 }> = {
 
 /** Back to front. */
 export const DRAW_ORDER: PartId[] = [
-  'torso', 'upper_arm_L', 'forearm_L', 'hand_L', 'upper_arm_R', 'forearm_R', 'hand_R',
+  // Hands sit under their forearms so the sleeve end covers the wrist.
+  'torso', 'upper_arm_L', 'hand_L', 'forearm_L', 'upper_arm_R', 'hand_R', 'forearm_R',
   'head', 'eyes_open', 'eyes_closed', 'brows',
   'mouth_closed', 'mouth_half', 'mouth_open', 'mouth_wide',
 ];

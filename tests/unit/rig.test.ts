@@ -34,4 +34,10 @@ describe('rig', () => {
     expect(SWAP_GROUPS.eyes).toContain(SWAP_DEFAULT.eyes);
     expect(SWAP_GROUPS.mouth).toContain(SWAP_DEFAULT.mouth);
   });
+  it('draws each hand underneath its forearm', () => {
+    for (const side of ['L', 'R']) {
+      expect(DRAW_ORDER.indexOf(`hand_${side}` as never)).toBeLessThan(DRAW_ORDER.indexOf(`forearm_${side}` as never));
+      expect(DRAW_ORDER.indexOf(`upper_arm_${side}` as never)).toBeLessThan(DRAW_ORDER.indexOf(`hand_${side}` as never));
+    }
+  });
 });

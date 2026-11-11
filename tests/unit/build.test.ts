@@ -41,6 +41,10 @@ describe.each(ANIMATIONS.map((a) => [a.id, a] as const))('buildLottie %s', (_, a
     const firstNull = doc.layers.findIndex((l) => l.ty === 3);
     expect(doc.layers.slice(firstNull).every((l) => l.ty === 3)).toBe(true);
   });
+  it('puts each forearm layer in front of its hand layer (Lottie draws the first layer on top)', () => {
+    const names = shapeLayers(doc).map((l) => l.nm);
+    for (const side of ['L', 'R']) expect(names.indexOf(`forearm_${side}`)).toBeLessThan(names.indexOf(`hand_${side}`));
+  });
   it('uses only allowed layer and item types', () => {
     for (const l of doc.layers) {
       expect([3, 4]).toContain(l.ty);

@@ -250,7 +250,7 @@ character fits inside the composition.
 
 ### 4.3 Draw order (back to front)
 
-torso → upper_arm_L → forearm_L → hand_L → upper_arm_R → forearm_R → hand_R →
+torso → upper_arm_L → hand_L → forearm_L → upper_arm_R → hand_R → forearm_R →
 head → eyes_open → eyes_closed → brows → mouth_closed → mouth_half → mouth_open
 → mouth_wide
 
