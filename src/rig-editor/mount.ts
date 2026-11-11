@@ -5,6 +5,7 @@ import { moveJoint } from '../rig/rig-edit';
 import type { AppBanner } from '../ui/app';
 import type { SheetBus } from '../ui/sheet-bus';
 import { createRigPanel } from './panel';
+import { startRigAutosave } from './autosave';
 import { createRigStore } from './store';
 import { createRigView } from './view';
 
@@ -59,6 +60,7 @@ export function mountRigEditor(el: HTMLElement, bus: SheetBus, editorStore: Edit
     }
   });
 
+  void startRigAutosave(store, bus, banner);
   return {
     store,
     show() { visible = true; el.hidden = false; view.render(); panel.renderPreview(); },

@@ -118,3 +118,31 @@ export async function loadSaved(): Promise<{ doc: EditorDoc | null; reference: B
     return { doc: null, reference, corrupt: true };
   });
 }
+
+/** Generic records (rig, rig view, pairings) with the same unload stash as the document. */
+const stashName = (key: string) => `character-rig:pending-${key}`;
+export function stashKey(key: string, value: unknown): void {
+  try { localStorage.setItem(stashName(key), JSON.stringify(value)); } catch { /* storage full or blocked */ }
+}
+export async function saveKey(key: string, value: unknown): Promise<void> {
+  const d = db ?? (await connection());
+  const tx = d.transaction(STORE, 'readwrite');
+  const done = new Promise<void>((ok, err) => { tx.oncomplete = () => ok(); tx.onerror = () => err(tx.error); tx.onabort = () => err(tx.error); });
+  tx.objectStore(STORE).put(JSON.parse(JSON.stringify(value)), key);
+  tx.commit?.();
+  await done;
+}
+/** Loads a record, preferring an unload stash (which is then written back and cleared). */
+export async function loadKey<T>(key: string, validate: (x: unknown) => T | null): Promise<T | null> {
+  let stashed: unknown = undefined;
+  try {
+    const raw = localStorage.getItem(stashName(key));
+    if (raw !== null) { localStorage.removeItem(stashName(key)); stashed = JSON.parse(raw); }
+  } catch { /* ignore */ }
+  if (stashed !== undefined) {
+    const v = validate(stashed);
+    if (v !== null) { await saveKey(key, v); return v; }
+  }
+  const raw = await withStore('readonly', (s) => req(s.get(key)));
+  return raw === undefined ? null : validate(raw);
+}

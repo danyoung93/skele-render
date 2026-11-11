@@ -86,3 +86,26 @@ describe('unload stash (review #9)', () => {
     expect(localStorage.getItem(PENDING_KEY)).toBeNull();
   });
 });
+
+import { saveKey, loadKey, stashKey } from '../../../src/editor/persist';
+import { DEFAULT_RIG, validateRig } from '../../../src/rig/rig-file';
+
+describe('generic keys (rig autosave)', () => {
+  it('round-trips a value under a key', async () => {
+    await saveKey('rig', DEFAULT_RIG);
+    expect(await loadKey('rig', validateRig)).toEqual(DEFAULT_RIG);
+  });
+  it('a stash wins over the stored value and is cleared', async () => {
+    await saveKey('rig', DEFAULT_RIG);
+    const other = { ...DEFAULT_RIG, name: 'stashed' };
+    stashKey('rig', other);
+    expect((await loadKey('rig', validateRig))!.name).toBe('stashed');
+    expect((await loadKey('rig', validateRig))!.name).toBe('stashed');
+    expect(localStorage.getItem('character-rig:pending-rig')).toBeNull();
+  });
+  it('invalid values give null', async () => {
+    await saveKey('rig', { nope: true });
+    expect(await loadKey('rig', validateRig)).toBeNull();
+    expect(await loadKey('missing', validateRig)).toBeNull();
+  });
+});

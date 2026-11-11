@@ -185,3 +185,78 @@ test('loading a reference image never replaces the loaded sheet (Edit sheet or E
   await page.getByRole('radio', { name: 'Animate' }).click();
   await expect(page.locator('[data-id="name"]')).toHaveText('Sheet: bearded-worker');
 });
+
+test.describe('rig autosave and remembered pairs', () => {
+  const rigFile = () => readFileSync('tests/fixtures/chunky.rig.json', 'utf8');
+  async function dropRig(page: Page, name: string, text: string) {
+    const dt = await page.evaluateHandle(([n, t]) => { const d = new DataTransfer(); d.items.add(new File([t], n, { type: 'application/json' })); return d; }, [name, text]);
+    await page.dispatchEvent('body', 'drop', { dataTransfer: dt });
+  }
+  async function fresh(page: Page) {
+    await page.goto('/');
+    await page.evaluate(() => { indexedDB.deleteDatabase('character-rig'); localStorage.clear(); });
+    await page.reload();
+  }
+
+  test('the rig and its reference placement survive an immediate reload', async ({ page }, info) => {
+    await openRig(page);
+    await page.locator('[data-id="rig-name-input"]').fill('bearded');
+    await page.locator('[data-id="rig-name-input"]').press('Enter');
+    const n0 = await centre(page, 'neck');
+    await drag(page, n0, [n0[0] + 30, n0[1] + 20]);
+    const moved = await pos(page, 'neck');
+    const { PNG } = await import('pngjs');
+    const png = new PNG({ width: 40, height: 20 }); png.data.fill(120);
+    const path = info.outputPath('ref.png');
+    writeFileSync(path, PNG.sync.write(png));
+    await page.locator('[data-id="rig-ref-load"]').setInputFiles(path);
+    await expect(page.locator('[data-id="rig-reference"]')).toBeVisible();
+    await page.locator('[data-id="rig-ref-move"]').check();
+    await drag(page, await at(page, 100, 300), await at(page, 140, 300));
+    const refX = await page.locator('[data-id="rig-reference"]').getAttribute('x');
+    await page.reload();
+    await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: bearded');
+    await page.getByRole('radio', { name: 'Edit rig' }).click();
+    await expect.poll(async () => (await pos(page, 'neck'))[0]).toBeCloseTo(moved[0], 2);
+    near(await pos(page, 'neck'), moved, 0.01);
+    await expect(page.locator('[data-id="rig-reference"]')).toHaveAttribute('x', refX!);
+  });
+
+  test('a sheet remembers its rig: loading it again offers that rig', async ({ page }) => {
+    await fresh(page);
+    await page.locator('[data-id="file"]').setInputFiles('examples/bearded-worker.svg');
+    await dropRig(page, 'chunky.rig.json', rigFile());
+    await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: chunky');
+    await page.locator('[data-id="file"]').setInputFiles('tests/fixtures/figma.svg');
+    await dropRig(page, 'default.rig.json', JSON.stringify({ ...JSON.parse(rigFile()), name: 'other' }));
+    await page.locator('[data-id="file"]').setInputFiles('examples/bearded-worker.svg');
+    await expect(page.locator('[data-id="app-banner"]')).toContainText('This sheet was last used with the rig chunky.');
+    await page.locator('[data-id="pair-use"]').click();
+    await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: chunky');
+    await expect(page.locator('[data-id="app-banner"]')).toBeHidden();
+  });
+
+  test('no banner when the remembered rig matches, or after a reload', async ({ page }) => {
+    await fresh(page);
+    await page.locator('[data-id="file"]').setInputFiles('examples/bearded-worker.svg');
+    await page.locator('[data-id="file"]').setInputFiles('examples/bearded-worker.svg');
+    await expect(page.locator('[data-id="name"]')).toHaveText('Sheet: bearded-worker');
+    await expect(page.locator('[data-id="app-banner"]')).toBeHidden();
+    await page.waitForTimeout(700);
+    await page.reload();
+    await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: default');
+    await page.waitForTimeout(300);
+    await expect(page.locator('[data-id="app-banner"]')).toBeHidden();
+  });
+
+  test('a rig dropped in Animate is one undo step in Edit rig', async ({ page }) => {
+    await fresh(page);
+    await dropRig(page, 'chunky.rig.json', rigFile());
+    await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: chunky');
+    await page.getByRole('radio', { name: 'Edit rig' }).click();
+    await page.locator('[data-id="rig-canvas"]').focus();
+    await page.keyboard.press('Control+z');
+    await page.getByRole('radio', { name: 'Animate' }).click();
+    await expect(page.locator('[data-id="rig-name"]')).toHaveText('Rig: default');
+  });
+});
