@@ -1,6 +1,10 @@
 /** Edit sheet mode: toolbar, canvas, panel, keyboard (sheet editor spec §2). */
 import type { SheetBus } from '../ui/sheet-bus';
-import { emptyDoc } from './model';
+import { download } from '../ui/util';
+import { importSheet } from './import';
+import { emptyDoc, hasShapes } from './model';
+import { loadSaved, persistenceAvailable, saveDoc, saveReference } from './persist';
+import { serialize } from './serialize';
 import { createPanel } from './panel';
 import { createStore, type Store } from './store';
 import { createSelectTool } from './tools/select';
@@ -42,7 +46,27 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     <aside class="panel editor-panel" data-id="editor-panel"></aside>
   </div>`;
   const view = createCanvasView(el.querySelector('[data-id="canvas-host"]')!, store);
-  createPanel(el.querySelector('[data-id="editor-panel"]')!, store, bus, view, { useTool: (id) => useTool(id) });
+  const confirmReplace = () => !store.get().dirty || window.confirm('Replace your current drawing? You can undo this with Ctrl+Z.');
+  createPanel(el.querySelector('[data-id="editor-panel"]')!, store, bus, view, {
+    useTool: (id) => useTool(id),
+    newSheet() {
+      if (!confirmReplace()) return;
+      const doc = { ...emptyDoc(store.doc().name), reference: store.doc().reference };
+      store.reset(doc, { undoable: true, dirty: false });
+      store.set({ importNotes: [] });
+    },
+    editCurrent() {
+      if (!confirmReplace()) return;
+      const { doc, warnings } = importSheet(bus.get());
+      store.reset({ ...doc, reference: store.doc().reference }, { undoable: true, dirty: false });
+      store.set({ importNotes: warnings });
+    },
+    downloadSvg() {
+      const doc = store.doc();
+      download(`${doc.name || 'my-character'}.svg`, serialize(doc), 'image/svg+xml');
+      store.set({ dirty: false });
+    },
+  });
 
   let current: ToolId | null = null;
   function useTool(id: ToolId) {
@@ -80,21 +104,46 @@ export function mountEditor(el: HTMLElement, bus: SheetBus): { show(): void; hid
     if (def) { e.preventDefault(); useTool(def.id); }
   });
 
-  // Message banner (errors, notes); dismissed by clicking it.
+  // Banner: autosave status plus the latest message (click a message to dismiss it).
   const banner = el.querySelector<HTMLElement>('[data-id="banner"]')!;
   banner.addEventListener('click', () => store.set({ message: null }));
   store.subscribe(() => {
-    const m = store.get().message;
-    banner.hidden = !m;
-    banner.textContent = m?.text ?? '';
+    const { message: m, autosave } = store.get();
+    const lines = [autosave === 'off' ? 'Autosave is off. Download your sheet to keep it.' : '', m?.text ?? ''].filter(Boolean);
+    banner.hidden = !lines.length;
+    banner.textContent = lines.join(' ');
     banner.className = `banner${m?.kind === 'error' ? ' error' : ''}`;
     banner.setAttribute('role', m?.kind === 'error' ? 'alert' : 'status');
   });
+
+  // Autosave (sheet editor spec §4.3): restore on load, then save 500 ms after the last change.
+  const AUTOSAVE_MS = 500;
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  const off = () => store.set({ autosave: 'off' });
+  void (async () => {
+    if (!(await persistenceAvailable())) { off(); return; }
+    try {
+      const saved = await loadSaved();
+      if (saved.doc) {
+        store.reset(saved.doc, { undoable: false, dirty: false });
+        // Show the restored drawing in Animate too, unless it is empty.
+        if (hasShapes(saved.doc)) store.flushPreview(); else store.cancelPreview();
+      }
+      if (saved.reference && saved.doc?.reference.hasImage) await store.loadReference(saved.reference, { fit: false });
+      if (saved.corrupt) store.set({ message: { kind: 'error', text: "Your saved work couldn't be read, so a blank sheet was started. The old copy was kept." } });
+    } catch { off(); return; }
+    store.onDoc((doc) => {
+      if (store.get().autosave === 'off') return;
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => { saveDoc(doc).catch(off); }, AUTOSAVE_MS);
+    });
+    store.onReference((blob) => { if (store.get().autosave === 'on') saveReference(blob).catch(off); });
+  })();
 
   useTool('select');
   return {
     store, view,
     show() { visible = true; el.hidden = false; view.render(); },
-    hide() { visible = false; el.hidden = true; },
+    hide() { visible = false; el.hidden = true; store.flushPreview(); },
   };
 }

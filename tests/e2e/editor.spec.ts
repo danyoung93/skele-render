@@ -273,3 +273,112 @@ test.describe('reference image', () => {
     expect(await img(page).getAttribute('href')).toBe(href);
   });
 });
+
+test.describe('sheet actions and autosave', () => {
+  test('autosave restores shapes and the reference image after a reload', async ({ page }, info) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await dragSheet(page, [450, 100], [650, 400]);
+    const { PNG } = await import('pngjs');
+    const png = new PNG({ width: 20, height: 10 }); png.data.fill(200);
+    const path = info.outputPath('ref.png');
+    (await import('node:fs')).writeFileSync(path, PNG.sync.write(png));
+    await page.locator('[data-id="ref-load"]').setInputFiles(path);
+    await expect(page.locator('[data-id="reference"]')).toBeVisible();
+    await page.waitForTimeout(800);
+    await page.reload();
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await expect(count(page, 'head')).toHaveText('1');
+    await expect(count(page, 'torso')).toHaveText('1');
+    await expect(page.locator('[data-id="reference"]')).toBeVisible();
+    // Animate picks up the restored drawing too.
+    await page.getByRole('radio', { name: 'Animate' }).click();
+    await expect(page.locator('[data-id="name"]')).toHaveText('Sheet: my-character');
+  });
+
+  test('Edit current sheet imports the Animate sheet, notes the gradient, and can be undone', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-id="edit-current"]').click();
+    await expect(count(page, 'head')).toHaveText('6');
+    await expect(page.locator('[data-id="editor-warnings"]')).toContainText('gradient flattened to its first colour');
+    await page.keyboard.press('Control+z');
+    await expect(count(page, 'head')).toHaveText('0');
+  });
+
+  test('New blank sheet asks first when there are unsaved changes', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    page.once('dialog', (d) => d.dismiss());
+    await page.locator('[data-id="new-sheet"]').click();
+    await expect(count(page, 'head')).toHaveText('1');
+    page.once('dialog', (d) => d.accept());
+    await page.locator('[data-id="new-sheet"]').click();
+    await expect(count(page, 'head')).toHaveText('0');
+  });
+
+  test('Download SVG saves a sheet that loads in Animate without warnings for drawn parts', async ({ page }, info) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('[data-id="download-svg"]').click()]);
+    expect(dl.suggestedFilename()).toBe('my-character.svg');
+    const path = info.outputPath('my-character.svg');
+    await dl.saveAs(path);
+    await page.getByRole('radio', { name: 'Animate' }).click();
+    await page.locator('[data-id="file"]').setInputFiles(path);
+    await expect(page.locator('[data-id="name"]')).toHaveText('Sheet: my-character');
+    await expect(page.locator('.warnings details summary', { hasText: /^head$/ })).toHaveCount(0);
+    // No confirmation needed after a download.
+    let asked = false;
+    page.once('dialog', (d) => { asked = true; void d.accept(); });
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await page.locator('[data-id="new-sheet"]').click();
+    expect(asked).toBe(false);
+  });
+
+  test('Export Lottie after drawing gives JSON that plays in lottie-web', async ({ page, context }, info) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await page.getByRole('radio', { name: 'Animate' }).click();
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export Lottie' }).click()]);
+    expect(dl.suggestedFilename()).toBe('my-character-idle.json');
+    const path = info.outputPath('x.json');
+    await dl.saveAs(path);
+    const json = JSON.parse((await import('node:fs')).readFileSync(path, 'utf8'));
+    const fresh = await context.newPage();
+    const errors: string[] = [];
+    fresh.on('pageerror', (e) => errors.push(e.message));
+    await fresh.goto('/tests/e2e/fidelity.html');
+    await fresh.waitForFunction(() => 'renderDoc' in window);
+    await fresh.evaluate((doc) => window.renderDoc(doc), json);
+    await expect(fresh.locator('#lottie svg path').first()).toBeAttached();
+    expect(errors).toEqual([]);
+  });
+
+  test('undo and redo shortcuts across three shapes', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('[data-tool="ellipse"]').click();
+    for (const x of [60, 120, 180]) await dragSheet(page, [x, 100], [x + 40, 140]);
+    const shapes = page.locator('[data-shape-id]');
+    await expect(shapes).toHaveCount(3);
+    await page.keyboard.press('Control+z'); await page.keyboard.press('Control+z');
+    await expect(shapes).toHaveCount(1);
+    await page.keyboard.press('Control+Shift+z');
+    await expect(shapes).toHaveCount(2);
+    await page.keyboard.press('Control+y');
+    await expect(shapes).toHaveCount(3);
+  });
+
+  test('when storage is unavailable, a banner says autosave is off and drawing still works', async ({ page }) => {
+    await page.addInitScript(() => { IDBFactory.prototype.open = () => { throw new Error('blocked'); }; });
+    await page.goto('/');
+    await page.getByRole('radio', { name: 'Edit sheet' }).click();
+    await expect(page.locator('[data-id="banner"]')).toContainText('Autosave is off. Download your sheet to keep it.');
+    await page.locator('[data-tool="ellipse"]').click();
+    await dragSheet(page, [100, 100], [250, 220]);
+    await expect(count(page, 'head')).toHaveText('1');
+  });
+});

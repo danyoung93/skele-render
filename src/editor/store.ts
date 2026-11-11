@@ -33,6 +33,8 @@ export interface EditorState {
   dirty: boolean;
   autosave: 'on' | 'off';
   message: { kind: 'info' | 'error'; text: string } | null;
+  /** Notes from the last 'Edit current sheet' import (lossy conversions). */
+  importNotes: { part: PartId; message: string }[];
 }
 
 export type Store = ReturnType<typeof createStore>;
@@ -42,7 +44,7 @@ export const PREVIEW_THROTTLE_MS = 200;
 export function createStore(bus: SheetBus, initial: EditorDoc) {
   let state: EditorState = {
     history: createHistory(initial), selection: [], active: 'head', tool: 'select', style: DEFAULT_STYLE,
-    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null,
+    viewport: { x: 0, y: 0, zoom: 1 }, hidden: new Set(), reference: null, dirty: false, autosave: 'on', message: null, importNotes: [],
   };
   const listeners = new Set<() => void>();
   const docListeners = new Set<(doc: EditorDoc) => void>();
@@ -116,6 +118,7 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
     setActive(active: PartId) { state = { ...state, active }; notify(); },
     setViewport(viewport: Viewport) { state = { ...state, viewport }; notify(); },
     flushPreview() { if (previewTimer) { clearTimeout(previewTimer); publishPreview(); } },
+    cancelPreview() { if (previewTimer) { clearTimeout(previewTimer); previewTimer = null; } },
     /**
      * Decodes a reference image. With `fit`, places it to fill the sheet (one undo step); otherwise keeps
      * the document's saved placement. On failure keeps the previous image and shows a message.

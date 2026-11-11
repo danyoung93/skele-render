@@ -86,3 +86,6 @@ export function findShape(doc: EditorDoc, id: string): { part: PartId; index: nu
   }
   return null;
 }
+
+/** True when any part has at least one shape. */
+export const hasShapes = (doc: EditorDoc) => PART_IDS.some((p) => doc.parts[p].length > 0);

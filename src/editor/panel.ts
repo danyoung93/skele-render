@@ -17,6 +17,9 @@ import { REF_SIZE } from '../sheet/layout';
 export interface PanelHooks {
   extraSections?: string;
   useTool(id: ToolId): void;
+  newSheet(): void;
+  editCurrent(): void;
+  downloadSvg(): void;
   bind?(root: HTMLElement): void;
   refresh?(root: HTMLElement): void;
 }
@@ -25,7 +28,9 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
   root.innerHTML = `
   <section class="ps"><h2>Sheet</h2>
     <label class="row">Name <input data-id="sheet-name" type="text" spellcheck="false"/></label>
-    <div data-id="sheet-actions" class="row wrap"></div>
+    <div class="row"><button class="btn" data-id="new-sheet">New blank sheet</button>
+      <button class="btn" data-id="edit-current" title="Turn the sheet shown in Animate into editable shapes">Edit current sheet</button></div>
+    <div class="row"><button class="btn primary" data-id="download-svg">Download SVG</button></div>
   </section>
   <section class="ps"><h2>Parts</h2>
     <div class="parts" data-id="parts">${PART_IDS.map((p) => `
@@ -101,6 +106,10 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     store.commit({ ...store.doc(), name });
   });
 
+  $('new-sheet').addEventListener('click', () => hooks.newSheet());
+  $('edit-current').addEventListener('click', () => hooks.editCurrent());
+  $('download-svg').addEventListener('click', () => hooks.downloadSvg());
+
   // Reference image controls
   const refMove = $<HTMLInputElement>('ref-move'), refLock = $<HTMLInputElement>('ref-lock'), refOpacity = $<HTMLInputElement>('ref-opacity');
   $<HTMLInputElement>('ref-load').addEventListener('change', (e) => {
@@ -148,8 +157,16 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     preview.innerHTML = '';
     const anim = ANIMATIONS.find((a) => a.id === previewAnim.value) ?? ANIMATIONS[0];
     player = lottie.loadAnimation({ container: preview, renderer: 'svg', loop: true, autoplay: true, animationData: buildLottie(bus.get(), anim, { debug: false }) });
-    $('editor-warnings').innerHTML = warningsHtml(bus.get().warnings);
+    renderWarnings();
   }
+  function renderWarnings() {
+    const notes = store.get().importNotes;
+    $('editor-warnings').innerHTML = (notes.length
+      ? `<h2>Import notes (${notes.length})</h2><ul>${notes.map((w) => `<li><b>${esc(w.part)}</b>: ${esc(w.message)}</li>`).join('')}</ul>`
+      : '') + warningsHtml(bus.get().warnings);
+  }
+  let lastNotes = store.get().importNotes;
+  store.subscribe(() => { if (store.get().importNotes !== lastNotes) { lastNotes = store.get().importNotes; renderWarnings(); } });
   previewAnim.addEventListener('change', renderPreview);
   bus.subscribe(() => { if (!root.closest('[hidden]')) renderPreview(); });
 
