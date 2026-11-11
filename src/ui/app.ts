@@ -1,5 +1,6 @@
 /** App shell: Animate | Edit sheet | Edit rig around one shared character (sheet + rig). */
 import { mountEditor } from '../editor/mount';
+import { mountRigEditor } from '../rig-editor/mount';
 import { parseRig, RigError } from '../rig/rig-file';
 import { loadSheet } from '../sheet/load';
 import { templateSvg } from '../sheet/template';
@@ -56,15 +57,14 @@ export function startApp(root: HTMLElement) {
   <div data-id="app-banner" class="app-banner" hidden></div>
   <div data-id="animate-root"></div>
   <div data-id="editor-root" class="editor-root" hidden></div>
-  <div data-id="rig-root" class="editor-root" hidden><p class="placeholder">Edit rig</p></div>`;
+  <div data-id="rig-root" class="editor-root" hidden></div>`;
   const bus = createSheetBus(loadSheet(templateSvg(), TEMPLATE_FILE));
   const bannerEl = root.querySelector<HTMLElement>('[data-id="app-banner"]')!;
   const banner = createBanner(bannerEl);
   bannerEl.addEventListener('click', () => banner.hide());
   const animate = mountAnimate(root.querySelector('[data-id="animate-root"]')!, bus);
   const editor = mountEditor(root.querySelector<HTMLElement>('[data-id="editor-root"]')!, bus);
-  const rigRoot = root.querySelector<HTMLElement>('[data-id="rig-root"]')!;
-  const rigMode = { show() { rigRoot.hidden = false; }, hide() { rigRoot.hidden = true; } };
+  const rigMode = mountRigEditor(root.querySelector<HTMLElement>('[data-id="rig-root"]')!, bus, editor.store, banner);
   const modes = { animate, editor, rig: rigMode } as const;
 
   root.querySelector('nav')!.addEventListener('click', (e) => {

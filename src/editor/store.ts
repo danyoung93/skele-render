@@ -40,6 +40,7 @@ export interface EditorState {
 }
 
 export type Store = ReturnType<typeof createStore>;
+export type EditorStore = Store;
 
 export const PREVIEW_THROTTLE_MS = 200;
 
@@ -73,8 +74,15 @@ export function createStore(bus: SheetBus, initial: EditorDoc) {
       if (!(e instanceof SheetError)) throw e;
     }
   }
+  // Only artwork (parts) or the name is published to the shared sheet. Reference-image changes are
+  // editor-only: publishing them would replace a sheet loaded elsewhere with this (possibly blank) doc.
+  let published = { parts: initial.parts, name: initial.name };
   function docChanged() {
-    if (!previewTimer) previewTimer = setTimeout(publishPreview, PREVIEW_THROTTLE_MS);
+    const d = doc();
+    if ((d.parts !== published.parts || d.name !== published.name) && !previewTimer) {
+      published = { parts: d.parts, name: d.name };
+      previewTimer = setTimeout(publishPreview, PREVIEW_THROTTLE_MS);
+    }
     for (const f of [...docListeners]) f(doc());
   }
   /** Drop selected ids that no longer exist. */
