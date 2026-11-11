@@ -44,7 +44,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     <select data-id="preview-anim" aria-label="Preview animation">${ANIMATIONS.map((a) => `<option value="${a.id}">${a.label}</option>`).join('')}</select>
     <div class="preview" data-id="preview"></div>
   </section>
-  <section class="ps warnings" data-id="warnings"></section>`;
+  <section class="ps warn-list" data-id="editor-warnings"></section>`;
 
   const $ = <T extends HTMLElement>(id: string) => root.querySelector<T>(`[data-id="${id}"]`)!;
   const nameIn = $<HTMLInputElement>('sheet-name');
@@ -119,7 +119,7 @@ export function createPanel(root: HTMLElement, store: Store, bus: SheetBus, view
     preview.innerHTML = '';
     const anim = ANIMATIONS.find((a) => a.id === previewAnim.value) ?? ANIMATIONS[0];
     player = lottie.loadAnimation({ container: preview, renderer: 'svg', loop: true, autoplay: true, animationData: buildLottie(bus.get(), anim, { debug: false }) });
-    $('warnings').innerHTML = warningsHtml(bus.get().warnings);
+    $('editor-warnings').innerHTML = warningsHtml(bus.get().warnings);
   }
   previewAnim.addEventListener('change', renderPreview);
   bus.subscribe(() => { if (!root.closest('[hidden]')) renderPreview(); });
