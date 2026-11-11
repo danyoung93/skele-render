@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { buildLottie } from '../../../src/lottie/build';
 import { loadSheet } from '../../../src/sheet/load';
@@ -11,6 +11,6 @@ import { ANIMATIONS } from '../../../src/anim';
 it('default template build matches the pre-rig fixture', () => {
   const path = resolve(process.cwd(), 'tests/fixtures/default-template-idle.json');
   const doc = buildLottie(loadSheet(templateSvg(), 'template.svg'), ANIMATIONS[0], { debug: false });
-  if (process.env.WRITE_DEFAULT_FIXTURE || !existsSync(path)) writeFileSync(path, JSON.stringify(doc));
+  if (process.env.WRITE_DEFAULT_FIXTURE) writeFileSync(path, JSON.stringify(doc));
   expect(doc).toEqual(JSON.parse(readFileSync(path, 'utf8')));
 });
