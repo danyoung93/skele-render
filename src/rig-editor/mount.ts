@@ -1,7 +1,7 @@
 /** Edit rig mode (rig editor spec §3). */
 import type { EditorStore } from '../editor/store';
 import { isTyping } from '../editor/view';
-import { moveJoint } from '../rig/rig-edit';
+import { moveJointMirrored } from '../rig/rig-edit';
 import type { AppBanner } from '../ui/app';
 import type { SheetBus } from '../ui/sheet-bus';
 import { createRigPanel } from './panel';
@@ -57,7 +57,7 @@ export function mountRigEditor(el: HTMLElement, bus: SheetBus, editorStore: Edit
     const d: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
     if (sel && d[e.key] && (e.target as HTMLElement)?.getAttribute?.('type') !== 'range') {
       e.preventDefault();
-      store.commit({ ...store.doc(), rig: moveJoint(store.doc().rig, sel, d[e.key], e.altKey) });
+      store.commit({ ...store.doc(), rig: moveJointMirrored(store.doc().rig, sel, d[e.key], e.altKey, store.get().mirrorArms) });
     }
   });
 

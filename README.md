@@ -33,6 +33,8 @@ npm run dev        # open http://localhost:5173
    - **Flip horizontally / vertically** mirror the selection (a group flips around its own centre).
    - Drag on empty canvas with **Select** to select every shape the box touches (Shift+drag adds to the selection).
    - The panel's **Part** dropdown moves the selected shapes to another part (they keep their position on the sheet).
+   - **Mirror arms** (Left → Right or Right → Left) lets you draw one arm; the other side is a flipped copy, shown
+     faded. Set it back to Off to keep the copy as ordinary shapes you can change.
    - **Edit points (A)** drags points and curve handles; double-click an edge to add a point; Delete removes one.
 4. The **Live preview** animates as you draw, and **Animate** shows the same sheet. **Download SVG** saves it.
 
@@ -52,7 +54,8 @@ makes an animated character: one rig can drive several sheets, and a sheet can b
    the character's head and body, then **Lock** it.
 2. Drag each joint onto the matching spot in the design: neck, shoulders, elbows, wrists, and the eye, brow
    and mouth anchors (the diamonds). A joint drags everything attached below it; **Alt+drag** moves just that
-   joint. Arrow keys nudge the selected joint (Shift ×10).
+   joint. Arrow keys nudge the selected joint (Shift ×10). Tick **Mirror arms** to keep the arms symmetrical: the right arm
+   snaps to mirror the left, and moving either arm's joint moves its partner.
 3. Arms re-angle to point from joint to joint. Artwork doesn't stretch, so trace each arm part to the design's
    proportions in Edit sheet and the pieces will meet at the joints.
 4. **Download rig** saves the rig file; **Load rig** (or dropping a `.rig.json` anywhere) loads one.

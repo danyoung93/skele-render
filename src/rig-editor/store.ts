@@ -13,6 +13,8 @@ export interface RigEditorState {
   characterOpacity: number;
   tool: 'joint' | 'reference';
   warnings: string[];
+  /** Mirror arms: moving either arm's joint mirrors it onto the other arm. */
+  mirrorArms: boolean;
 }
 export type RigStore = ReturnType<typeof createRigStore>;
 
@@ -22,7 +24,7 @@ const DEFAULT_REFERENCE: ReferenceState = { x: 0, y: 0, scale: 1, opacity: 0.5, 
 export function createRigStore(bus: SheetBus) {
   let state: RigEditorState = {
     history: createHistory<RigDoc>({ rig: bus.getRig(), reference: DEFAULT_REFERENCE }),
-    selected: null, viewport: { x: 0, y: 0, zoom: 1 }, characterOpacity: 0.8, tool: 'joint',
+    selected: null, viewport: { x: 0, y: 0, zoom: 1 }, characterOpacity: 0.8, tool: 'joint', mirrorArms: false,
     warnings: rigToSkeleton(bus.getRig()).warnings,
   };
   const listeners = new Set<() => void>();

@@ -4,6 +4,7 @@ import { ANIMATIONS } from '../anim';
 import type { EditorStore } from '../editor/store';
 import { buildLottie } from '../lottie/build';
 import { DEFAULT_RIG, parseRig, RigError, rigsEqual, serializeRig } from '../rig/rig-file';
+import { mirrorArmsFrom } from '../rig/rig-edit';
 import type { AppBanner } from '../ui/app';
 import type { SheetBus } from '../ui/sheet-bus';
 import { download, esc } from '../ui/util';
@@ -18,6 +19,7 @@ export function createRigPanel(root: HTMLElement, store: RigStore, bus: SheetBus
       <button class="btn primary" data-id="rig-download">Download rig</button>
       <button class="btn" data-id="rig-reset">Reset to default</button></div>
   </section>
+  <section class="ps"><label class="row" title="Moving either arm's joint mirrors it onto the other arm"><input type="checkbox" data-id="rig-mirror"/> Mirror arms</label></section>
   <section class="ps"><h2>Selected joint</h2><p class="readout" data-id="joint-readout"></p>
     <p class="hint">Drag a joint: everything attached below it moves too. Alt+drag moves just that joint.</p></section>
   <section class="ps"><h2>Reference image</h2>
@@ -80,6 +82,12 @@ export function createRigPanel(root: HTMLElement, store: RigStore, bus: SheetBus
     store.commit({ ...store.doc(), reference: { ...store.doc().reference, locked: refLock.checked } });
     if (refLock.checked) store.set({ tool: 'joint' });
   });
+  const mirror = $<HTMLInputElement>('rig-mirror');
+  mirror.addEventListener('change', () => {
+    store.set({ mirrorArms: mirror.checked });
+    // Turning it on snaps the right arm to mirror the left (one undo step).
+    if (mirror.checked) store.commit({ ...store.doc(), rig: mirrorArmsFrom(store.doc().rig, 'L') });
+  });
   charOpacity.addEventListener('input', () => store.set({ characterOpacity: Number(charOpacity.value) / 100 }));
 
   // Live preview (throttled), only while Edit rig is visible.
@@ -112,6 +120,7 @@ export function createRigPanel(root: HTMLElement, store: RigStore, bus: SheetBus
     refMove.disabled = !hasImg || r.locked;
     ($('rig-ref-reset') as HTMLButtonElement).disabled = !hasImg;
     charOpacity.value = String(Math.round(st.characterOpacity * 100));
+    mirror.checked = st.mirrorArms;
     $('rig-warnings').innerHTML = st.warnings.length
       ? `<h2>Warnings (${st.warnings.length})</h2><ul>${st.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul>`
       : '<p class="ok">No rig warnings.</p>';

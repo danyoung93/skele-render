@@ -6,7 +6,7 @@ import type { AppBanner } from '../ui/app';
 import type { SheetBus } from '../ui/sheet-bus';
 import type { RigStore } from './store';
 
-interface RigView { reference: ReferenceState; characterOpacity: number }
+interface RigView { reference: ReferenceState; characterOpacity: number; mirrorArms?: boolean }
 const AUTOSAVE_MS = 500;
 
 function validateView(x: unknown): RigView | null {
@@ -31,7 +31,7 @@ export async function startRigAutosave(store: RigStore, bus: SheetBus, banner: A
       const rig = await loadKey('rig', validateRig);
       if (rig) bus.setRig(rig, 'restore');
       const view = await loadKey('rig-view', validateView);
-      if (view) { store.reset({ rig: bus.getRig(), reference: view.reference }); store.set({ characterOpacity: view.characterOpacity }); }
+      if (view) { store.reset({ rig: bus.getRig(), reference: view.reference }); store.set({ characterOpacity: view.characterOpacity, mirrorArms: view.mirrorArms === true }); }
       pairings = (await loadKey('pairings', validatePairings)) ?? {};
     } catch { /* fall back to defaults */ }
   }
@@ -60,7 +60,7 @@ export async function startRigAutosave(store: RigStore, bus: SheetBus, banner: A
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const value = (key: string): unknown =>
     key === 'rig' ? bus.getRig()
-      : key === 'rig-view' ? { reference: store.doc().reference, characterOpacity: store.get().characterOpacity }
+      : key === 'rig-view' ? { reference: store.doc().reference, characterOpacity: store.get().characterOpacity, mirrorArms: store.get().mirrorArms }
         : pairings;
   function schedule(key: string) {
     if (timers.has(key)) clearTimeout(timers.get(key)!);
@@ -68,8 +68,11 @@ export async function startRigAutosave(store: RigStore, bus: SheetBus, banner: A
   }
   bus.subscribeRig(() => schedule('rig'));
   store.onDoc(() => schedule('rig-view'));
-  let lastOpacity = store.get().characterOpacity;
-  store.subscribe(() => { if (store.get().characterOpacity !== lastOpacity) { lastOpacity = store.get().characterOpacity; schedule('rig-view'); } });
+  let lastView = `${store.get().characterOpacity}|${store.get().mirrorArms}`;
+  store.subscribe(() => {
+    const v = `${store.get().characterOpacity}|${store.get().mirrorArms}`;
+    if (v !== lastView) { lastView = v; schedule('rig-view'); }
+  });
   // Unload: stash pending records synchronously (IndexedDB writes can't finish during unload).
   const flush = () => {
     for (const key of [...timers.keys()]) { clearTimeout(timers.get(key)!); timers.delete(key); stashKey(key, value(key)); saveKey(key, value(key)).catch(() => {}); }

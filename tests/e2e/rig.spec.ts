@@ -321,3 +321,23 @@ test.describe('final review fixes', () => {
     await expect(page.locator('[data-id="rig-banner"]')).toContainText('Autosave is off. Download your rig to keep it.');
   });
 });
+
+test('mirror arms in Edit rig: ticking snaps the right arm; dragging either side moves both; undo reverts', async ({ page }) => {
+  await openRig(page);
+  const e0 = await centre(page, 'elbow_R');
+  await page.keyboard.down('Alt');
+  await drag(page, e0, [e0[0] + 40, e0[1] - 30]);
+  await page.keyboard.up('Alt');
+  const lopsided = await pos(page, 'elbow_R');
+  await page.locator('[data-id="rig-mirror"]').check();
+  const root = await pos(page, 'root'), eL = await pos(page, 'elbow_L');
+  await expect.poll(async () => (await pos(page, 'elbow_R'))[0]).toBeCloseTo(2 * root[0] - eL[0], 2);
+  const w = await centre(page, 'wrist_R');
+  await drag(page, w, [w[0] + 25, w[1] + 15]);
+  const wR = await pos(page, 'wrist_R'), wL = await pos(page, 'wrist_L');
+  expect(wL[0]).toBeCloseTo(2 * root[0] - wR[0], 2);
+  expect(wL[1]).toBeCloseTo(wR[1], 2);
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  near(await pos(page, 'elbow_R'), lopsided, 0.01);
+});

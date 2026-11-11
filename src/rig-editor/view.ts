@@ -5,7 +5,7 @@ import { fitViewport, zoomAt, type Viewport } from '../editor/viewport';
 import { shapeItemsToSvg } from '../lottie/to-svg';
 import { restPose } from '../rig/pose';
 import { DRAW_ORDER, SWAP_DEFAULT, swapGroupOf } from '../rig/rig';
-import { moveJoint } from '../rig/rig-edit';
+import { moveJointMirrored } from '../rig/rig-edit';
 import { CHAR_SIZE, JOINT_IDS, type JointId } from '../rig/rig-file';
 import type { PartId, Vec2 } from '../sheet/layout';
 import type { SheetBus } from '../ui/sheet-bus';
@@ -131,7 +131,7 @@ export function createRigView(host: HTMLElement, store: RigStore, bus: SheetBus,
       return;
     }
     const p = toSheet(e), dx = p[0] - drag.start[0], dy = p[1] - drag.start[1];
-    if (drag.kind === 'joint') store.transient({ ...drag.base, rig: moveJoint(drag.base.rig, drag.id, [dx, dy], drag.alone) });
+    if (drag.kind === 'joint') store.transient({ ...drag.base, rig: moveJointMirrored(drag.base.rig, drag.id, [dx, dy], drag.alone, store.get().mirrorArms) });
     else store.transient({ ...drag.base, reference: { ...drag.base.reference, x: drag.base.reference.x + dx, y: drag.base.reference.y + dy } });
   });
   const end = (e: PointerEvent) => {
